@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kindle Highlights Sync Diagnostic</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Kindle Highlights Sync Diagnostic</h1>
+    
+    <div class="section">
+        <h2>Instructions</h2>
+        <ol>
+            <li>Go to <a href="https://read.amazon.com/notebook" target="_blank">read.amazon.com/notebook</a></li>
+            <li>Make sure you're logged in and can see your books</li>
+            <li>Bookmark this diagnostic page</li>
+            <li>Go back to the Amazon notebook page</li>
+            <li>Open Developer Console (F12)</li>
+            <li>Copy and paste the diagnostic code below into the console</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Diagnostic Code</h2>
+        <p>Copy this entire code block and paste it into the browser console on the Amazon notebook page:</p>
+        
+        <pre id="diagnosticCode">
+// Kindle Highlights Sync Diagnostic Script
+console.log("🔍 Starting Kindle Highlights Sync Diagnostic...");
+console.log("URL:", window.location.href);
+console.log("Page Title:", document.title);
+
+// Check if we're on the right page
+const isNotebookPage = window.location.href.includes('read.amazon.com/notebook');
+console.log("✓ On notebook page:", isNotebookPage);
+
+// Check authentication
+const loginIndicators = ['.ap-sign-in-page', '#ap_email', '.signin-page'];
+const isLoginPage = loginIndicators.some(sel => document.querySelector(sel) !== null);
+console.log("⚠️ Login page detected:", isLoginPage);
+
+if (isLoginPage) {
+    console.log("❌ Please log in first, then run this diagnostic again");
+} else {
+    console.log("✓ Appears to be authenticated");
+}
+
+// Test book selectors
+console.log("\n📚 Testing Book Selectors:");
+const bookSelectors = [
+    '[data-testid="book-item"]',
+    '.kp-notebook-library-book', 
+    '.library-book',
+    'div[class*="library-book"]',
+    'div[class*="notebook-book"]',
+    '[id*="book-"]',
+    '.kp-notebook-library-each-book'
+];
+
+let totalBooks = 0;
+let workingBookSelector = null;
+
+bookSelectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    console.log(`  ${selector}: ${elements.length} elements`);
+    if (elements.length > 0 && !workingBookSelector) {
+        workingBookSelector = selector;
+        totalBooks = elements.length;
+    }
+});
+
+console.log(`📊 Total books found: ${totalBooks}`);
+if (workingBookSelector) {
+    console.log(`✓ Working book selector: ${workingBookSelector}`);
+    
+    // Analyze first book
+    const firstBook = document.querySelector(workingBookSelector);
+    if (firstBook) {
+        console.log("\n🔍 First book analysis:");
+        console.log("HTML:", firstBook.outerHTML.substring(0, 200) + "...");
+        console.log("Text content:", firstBook.textContent.substring(0, 100) + "...");
+    }
+} else {
+    console.log("❌ No working book selector found");
+}
+
+// Test highlight selectors  
+console.log("\n🖍️ Testing Highlight Selectors:");
+const highlightSelectors = [
+    '[data-testid="highlight"]',
+    '.kp-notebook-highlight',
+    '.highlight-content', 
+    'div[class*="highlight"]',
+    '[id*="highlight"]',
+    '.a-spacing-base'
+];
+
+let totalHighlights = 0;
+let workingHighlightSelector = null;
+
+highlightSelectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    console.log(`  ${selector}: ${elements.length} elements`);
+    if (elements.length > 0 && !workingHighlightSelector) {
+        workingHighlightSelector = selector;
+        totalHighlights = elements.length;
+    }
+});
+
+console.log(`📊 Total highlights found: ${totalHighlights}`);
+if (workingHighlightSelector) {
+    console.log(`✓ Working highlight selector: ${workingHighlightSelector}`);
+    
+    // Analyze first highlight
+    const firstHighlight = document.querySelector(workingHighlightSelector);
+    if (firstHighlight) {
+        console.log("\n🔍 First highlight analysis:");
+        console.log("HTML:", firstHighlight.outerHTML.substring(0, 200) + "...");
+        console.log("Text content:", firstHighlight.textContent.substring(0, 100) + "...");
+    }
+} else {
+    console.log("❌ No working highlight selector found");
+}
+
+// Look for relevant class names
+console.log("\n🏷️ Scanning for relevant class names...");
+const allElements = document.querySelectorAll('*');
+const relevantClasses = new Set();
+
+allElements.forEach(el => {
+    if (el.className && typeof el.className === 'string') {
+        el.className.split(' ').forEach(cls => {
+            if (cls && (
+                cls.toLowerCase().includes('book') || 
+                cls.toLowerCase().includes('highlight') || 
+                cls.toLowerCase().includes('notebook') ||
+                cls.toLowerCase().includes('library')
+            )) {
+                relevantClasses.add(cls);
+            }
+        });
+    }
+});
+
+console.log("Relevant classes found:", Array.from(relevantClasses).sort());
+
+// Page structure analysis
+console.log("\n🏗️ Page Structure Analysis:");
+console.log("Body classes:", document.body.className);
+console.log("Main containers with IDs:", 
+    Array.from(document.querySelectorAll('[id]'))
+        .filter(el => el.id.includes('notebook') || el.id.includes('library') || el.id.includes('book'))
+        .map(el => el.id)
+);
+
+// Summary
+console.log("\n📝 DIAGNOSTIC SUMMARY:");
+console.log("=".repeat(50));
+console.log(`✓ On correct page: ${isNotebookPage}`);
+console.log(`✓ Authenticated: ${!isLoginPage}`);
+console.log(`📚 Books found: ${totalBooks} (using: ${workingBookSelector || 'none'})`);
+console.log(`🖍️ Highlights found: ${totalHighlights} (using: ${workingHighlightSelector || 'none'})`);
+
+if (totalBooks === 0) {
+    console.log("\n❌ ISSUE: No books found");
+    console.log("   Possible solutions:");
+    console.log("   1. Make sure you have Kindle books with highlights");
+    console.log("   2. Try refreshing the page");
+    console.log("   3. Check if Amazon changed their page structure");
+} else if (totalHighlights === 0) {
+    console.log("\n⚠️ WARNING: Books found but no highlights");
+    console.log("   Possible solutions:");
+    console.log("   1. Click on a book to see its highlights");
+    console.log("   2. Make sure you have highlighted text in your books");
+} else {
+    console.log("\n✅ SUCCESS: Both books and highlights found!");
+    console.log("   The extension should be able to sync your data.");
+}
+
+console.log("\n🔍 Diagnostic complete. Please share this output if you need help.");
+        </pre>
+        
+        <button class="btn-primary" onclick="copyDiagnosticCode()">📋 Copy Diagnostic Code</button>
+    </div>
+
+    <div class="section">
+        <h2>Next Steps</h2>
+        <ol>
+            <li><strong>Run the diagnostic</strong> on the Amazon notebook page</li>
+            <li><strong>Check the console output</strong> - it will tell you exactly what's found</li>
+            <li><strong>If no books/highlights found</strong>: Amazon may have changed their page structure</li>
+            <li><strong>Share the output</strong> if you need help debugging further</li>
+        </ol>
+    </div>
+
+    <script>
+        function copyDiagnosticCode() {
+            const code = document.getElementById('diagnosticCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Diagnostic code copied to clipboard! Now paste it into the browser console on the Amazon notebook page.');
+            });
+        }
+    </script>
+</body>
+</html>

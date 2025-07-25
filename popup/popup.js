@@ -140,6 +140,15 @@ class PopupController {
       if (result.success) {
         if (result.data.status === 'not_implemented') {
           this.showMessage(result.data.message, 'info');
+        } else if (result.data.status === 'redirect') {
+          // Handle redirect case - Amazon tab opened for user to login
+          this.showMessage(result.data.message, 'info');
+          this.elements.syncIndicator.className = 'sync-indicator warning';
+          this.elements.syncText.textContent = 'Login required';
+        } else if (result.data.status === 'success') {
+          this.showMessage(`Sync completed! Found ${result.data.totalHighlights || 0} highlights from ${result.data.totalBooks || 0} books.`, 'success');
+          // Reload stats after sync
+          setTimeout(() => this.loadInitialData(), 1000);
         } else {
           this.showMessage('Sync completed successfully!', 'success');
           // Reload stats after sync

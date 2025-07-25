@@ -285,23 +285,31 @@ class BackgroundService {
     console.log('Initiating sync with Amazon Kindle notebook...');
     
     try {
-      // Check if user is on Amazon Kindle notebook page
+      // Check if user is already on Amazon Kindle notebook page
       const tabs = await this.getKindleNotebookTabs();
       
       if (tabs.length === 0) {
-        // Open Kindle notebook page
-        const tab = await chrome.tabs.create({
-          url: 'https://read.amazon.com/notebook',
-          active: false
-        });
+        // No existing notebook tab found - guide user to Amazon using existing session
+        const guideResult = await this.guideUserToAmazon();
         
-        // Wait for page to load
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        return this.performSyncOnTab(tab.id);
+        // Return guide result - user will need to click sync again after logging in
+        return {
+          status: 'redirect',
+          message: guideResult.message,
+          tabId: guideResult.tabId,
+          action: 'manual_sync_required'
+        };
       } else {
-        // Use existing tab
-        return this.performSyncOnTab(tabs[0].id);
+        // Use existing tab - this should have the proper login session
+        const existingTab = tabs[0];
+        
+        // Bring the tab to focus so user can see what's happening
+        await chrome.tabs.update(existingTab.id, { active: true });
+        
+        // Small delay to ensure tab is focused and content script loads
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        return this.performSyncOnTab(existingTab.id);
       }
       
     } catch (error) {
@@ -318,6 +326,49 @@ class BackgroundService {
       url: ['*://read.amazon.com/notebook*', '*://read.amazon.com/kp/notebook*']
     });
     return tabs;
+  }
+
+  // Alternative sync method: Guide user to open Amazon in their current session
+  async guideUserToAmazon() {
+    try {
+      // First, try to find any Amazon tab that's already logged in
+      const amazonTabs = await chrome.tabs.query({
+        url: ['*://amazon.com/*', '*://*.amazon.com/*']
+      });
+
+      if (amazonTabs.length > 0) {
+        // User has Amazon tabs open - navigate one to the notebook page
+        const amazonTab = amazonTabs[0];
+        await chrome.tabs.update(amazonTab.id, {
+          url: 'https://read.amazon.com/notebook',
+          active: true
+        });
+        
+        return {
+          status: 'navigated',
+          message: 'Navigated to Kindle notebook page. Once you can see your books, click "Sync Now" again.',
+          tabId: amazonTab.id
+        };
+      } else {
+        // No Amazon tabs - open a new one
+        const tab = await chrome.tabs.create({
+          url: 'https://read.amazon.com/notebook',
+          active: true
+        });
+        
+        return {
+          status: 'created',
+          message: 'Opened Amazon Kindle notebook page. Please log in if needed, then click "Sync Now" again.',
+          tabId: tab.id
+        };
+      }
+    } catch (error) {
+      console.error('Failed to guide user to Amazon:', error);
+      return {
+        status: 'error',
+        message: 'Please manually go to read.amazon.com/notebook and try sync again.'
+      };
+    }
   }
 
   async performSyncOnTab(tabId) {
