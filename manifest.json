@@ -18,6 +18,10 @@
     "https://cdn.jsdelivr.net/*"
   ],
   
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' https://cdn.jsdelivr.net; object-src 'self'"
+  },
+  
   "background": {
     "service_worker": "background.js"
   },

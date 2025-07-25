@@ -15,9 +15,9 @@ class BackgroundService {
     this.emailService = emailService;
     this.highlightSelector = new HighlightSelector(database);
     this.emailScheduler = emailScheduler;
-    this.performanceMonitor = performanceMonitor;
-    this.errorRecovery = errorRecovery;
-    this.dataValidator = dataValidator;
+    this.performanceMonitor = self.performanceMonitor || performanceMonitor;
+    this.errorRecovery = self.errorRecovery || errorRecovery;
+    this.dataValidator = self.dataValidator || dataValidator;
     this.setupEventListeners();
   }
 
