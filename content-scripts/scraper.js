@@ -431,9 +431,14 @@ initializeScraper();
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Content script received message:', request);
+  
   if (request.action === 'start-scraping') {
+    console.log('Starting scraping process...');
+    
     // Ensure scraper is initialized
     if (!window.scraper) {
+      console.error('Scraper not yet initialized');
       sendResponse({
         status: 'error',
         message: 'Scraper not yet initialized. Please wait and try again.'
@@ -441,9 +446,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return;
     }
     
+    console.log('Scraper is ready, starting highlight scraping...');
+    
     window.scraper.scrapeHighlights(request.options || {}).then(result => {
+      console.log('Scraping completed:', result);
       sendResponse(result);
     }).catch(error => {
+      console.error('Scraping failed:', error);
       sendResponse({
         status: 'error',
         message: error.message

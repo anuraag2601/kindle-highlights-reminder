@@ -401,10 +401,14 @@ class BackgroundService {
   }
 
   async performSyncOnTab(tabId) {
+    console.log(`Performing sync on tab ${tabId}...`);
+    
     return new Promise((resolve) => {
       // Send message to content script to start scraping
+      console.log('Sending start-scraping message to content script...');
       chrome.tabs.sendMessage(tabId, { action: 'start-scraping' }, async (response) => {
         if (chrome.runtime.lastError) {
+          console.error('Chrome runtime error:', chrome.runtime.lastError);
           resolve({
             status: 'error',
             message: 'Failed to communicate with content script: ' + chrome.runtime.lastError.message
@@ -413,12 +417,15 @@ class BackgroundService {
         }
 
         if (!response) {
+          console.error('No response from content script');
           resolve({
             status: 'error',
-            message: 'No response from content script'
+            message: 'No response from content script. Make sure you are on the Amazon Kindle notebook page.'
           });
           return;
         }
+
+        console.log('Received response from content script:', response);
 
         if (response.status === 'success') {
           // Store the scraped data in the database
