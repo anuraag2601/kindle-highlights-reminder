@@ -3,6 +3,7 @@
 ## Services & API Keys Required
 
 ### Email Services (Choose One)
+
 1. **EmailJS** (Recommended for MVP)
    - **API Key Required**: EmailJS Service ID, Template ID, Public Key
    - **Setup**: Create account at emailjs.com, configure email service (Gmail, Outlook, etc.)
@@ -22,6 +23,7 @@
    - **Cons**: Requires you to set up backend service
 
 ### No Additional API Keys Needed
+
 - Amazon authentication: Uses existing session cookies
 - Data storage: Browser's IndexedDB (local storage)
 - Web scraping: Native browser content script APIs
@@ -29,9 +31,11 @@
 ## Implementation Milestones
 
 ### Milestone 1: Foundation & Setup
+
 **Goal**: Basic extension structure with testing and version control
 
 #### Deliverables:
+
 - Git repository with proper structure
 - Testing framework setup (Jest + Puppeteer)
 - CI/CD workflow (GitHub Actions)
@@ -45,6 +49,7 @@
   - Basic icon files
 
 #### Success Criteria:
+
 - Extension loads successfully in Chrome/Edge
 - Popup displays "No highlights yet" state
 - Basic settings storage works
@@ -53,20 +58,24 @@
 - Git workflow established
 
 #### Testing:
+
 - Unit tests for database operations
 - Extension loading tests
 - UI interaction tests
 
 ### Milestone 2: Web Scraping Engine
+
 **Goal**: Extract highlights from Amazon Kindle notebook
 
 #### Deliverables:
+
 - `content-scripts/scraper.js` - Main scraping logic
 - `content-scripts/parser.js` - HTML parsing utilities
 - Enhanced `background.js` - Scraping coordination
 - Mock Amazon pages for testing
 
 #### Success Criteria:
+
 - Successfully detects Amazon notebook page
 - Extracts book information (title, author, ASIN)
 - Extracts highlights with complete metadata
@@ -76,15 +85,18 @@
 - All scraping tests pass
 
 #### Testing:
+
 - End-to-end scraping tests with mock pages
 - Rate limiting verification
 - Error handling scenarios
 - Data integrity tests
 
 ### Milestone 3: Data Management & Settings
+
 **Goal**: Robust data storage and user settings
 
 #### Deliverables:
+
 - Complete `lib/database.js` CRUD operations
 - `options/options.html` - Full settings page
 - `options/options.js` - Settings functionality
@@ -92,6 +104,7 @@
 - Enhanced popup with real statistics
 
 #### Success Criteria:
+
 - Full database schema implemented
 - Data migration system works
 - Settings persist correctly
@@ -101,15 +114,18 @@
 - All data tests pass
 
 #### Testing:
+
 - Database migration tests
 - Settings persistence tests
 - Data export/import validation
 - Large dataset performance tests
 
 ### Milestone 4: Email System
+
 **Goal**: Smart highlight selection and email delivery
 
 #### Deliverables:
+
 - `lib/email-service.js` - Multi-provider email support
 - `lib/highlight-selector.js` - Selection algorithms
 - Email templates (HTML + text)
@@ -117,6 +133,7 @@
 - Scheduled email system
 
 #### Success Criteria:
+
 - Email templates render correctly
 - Multiple selection algorithms work (random, spaced repetition, oldest-first)
 - Scheduled emails send successfully
@@ -125,15 +142,18 @@
 - All email tests pass
 
 #### Testing:
+
 - Email template rendering tests
 - Selection algorithm verification
 - Email service integration tests
 - Scheduling system tests
 
 ### Milestone 5: Production Release
+
 **Goal**: Polished, production-ready extension
 
 #### Deliverables:
+
 - Complete error handling and recovery
 - Performance optimizations
 - Cross-browser compatibility
@@ -142,6 +162,7 @@
 - Distribution package
 
 #### Success Criteria:
+
 - Error recovery works in all scenarios
 - Performance meets benchmarks (<2 min sync for 1000 highlights)
 - Works in Chrome, Edge, and Firefox
@@ -150,6 +171,7 @@
 - Extension package ready for store submission
 
 #### Testing:
+
 - Full end-to-end test suite
 - Performance benchmarks
 - Cross-browser compatibility tests
@@ -159,6 +181,7 @@
 ## Technical Implementation Details
 
 ### Database Schema
+
 ```javascript
 // Store: books
 {
@@ -169,7 +192,7 @@
   lastUpdated: timestamp
 }
 
-// Store: highlights  
+// Store: highlights
 {
   id: string (UUID),
   bookAsin: string,
@@ -199,9 +222,10 @@
 ```
 
 ### Scraping Strategy
+
 1. **Page Detection**: Monitor tab updates for read.amazon.com/notebook
 2. **Authentication Check**: Verify user is logged in
-3. **Progressive Scraping**: 
+3. **Progressive Scraping**:
    - Load book list first
    - For each book, click to load highlights
    - Handle pagination with "Show More" clicks
@@ -210,18 +234,19 @@
 5. **Error Recovery**: Retry failed operations with exponential backoff
 
 ### Email Selection Algorithm
+
 ```javascript
 // Spaced Repetition Logic
 function selectHighlightsSpacedRepetition(count = 5) {
   const now = Date.now();
   const highlights = getAllHighlights();
-  
+
   // Categorize by last sent time
   const neverSent = highlights.filter(h => !h.lastSentInEmail);
   const sent30DaysAgo = highlights.filter(h => daysSince(h.lastSentInEmail) > 30);
   const sent15_30DaysAgo = highlights.filter(h => daysSince(h.lastSentInEmail) 15-30);
   const sent7_15DaysAgo = highlights.filter(h => daysSince(h.lastSentInEmail) 7-15);
-  
+
   // Mix: 40% never sent, 30% >30 days, 20% 15-30 days, 10% 7-15 days
   return [
     ...shuffle(neverSent).slice(0, Math.ceil(count * 0.4)),
@@ -243,40 +268,50 @@ function selectHighlightsSpacedRepetition(count = 5) {
 ## Potential Challenges & Solutions
 
 ### Challenge 1: Amazon UI Changes
+
 **Risk**: Amazon could change their HTML structure
-**Solution**: 
+**Solution**:
+
 - Use multiple CSS selectors as fallbacks
 - Implement graceful degradation
 - Add debug logging to identify selector failures
 - Regular monitoring and updates
 
 ### Challenge 2: Rate Limiting
+
 **Risk**: Amazon might block rapid requests
 **Solution**:
+
 - Implement respectful delays (2+ seconds between operations)
 - Exponential backoff on errors
 - Allow manual sync override
 - Monitor for 429/rate limit responses
 
-### Challenge 3: Email Deliverability  
+### Challenge 3: Email Deliverability
+
 **Risk**: Emails might go to spam or fail to send
 **Solution**:
+
 - Use reputable email services (EmailJS, SendGrid)
 - Implement email delivery tracking
 - Provide test email functionality
 - Clear error messages for delivery failures
 
 ### Challenge 4: Large Libraries
+
 **Risk**: Users with thousands of highlights
 **Solution**:
+
 - Batch processing (50 highlights at a time)
 - Progress indicators during sync
 - Incremental sync (only new highlights)
 - Optional sync limits for very large libraries
 
 ### Challenge 5: Cross-Browser Compatibility
+
 **Risk**: Different behavior in Chrome vs Edge vs Firefox
 **Solution**:
+
 - Use standard web APIs (avoid Chrome-specific features)
 - Test in multiple browsers
 - Polyfills for missing features
@@ -305,6 +340,7 @@ function selectHighlightsSpacedRepetition(count = 5) {
 ### Testing Framework Setup
 
 #### Required Dependencies
+
 ```json
 {
   "devDependencies": {
@@ -322,6 +358,7 @@ function selectHighlightsSpacedRepetition(count = 5) {
 ```
 
 #### Test Structure
+
 ```
 tests/
 ├── setup.js                           # Test environment setup
@@ -351,6 +388,7 @@ tests/
 ```
 
 #### Testing Commands
+
 ```bash
 npm run test              # Run all tests
 npm run test:unit         # Unit tests only
@@ -365,6 +403,7 @@ npm run format            # Prettier formatting
 ### Browser Automation Setup
 
 #### Puppeteer Configuration
+
 - Automated Chrome/Edge browser control
 - Extension loading and testing
 - Amazon page interaction simulation
@@ -372,8 +411,9 @@ npm run format            # Prettier formatting
 - Performance monitoring
 
 #### Test Scenarios
+
 1. **Extension Loading**: Verify extension loads correctly
-2. **Popup Interaction**: Test popup UI functionality  
+2. **Popup Interaction**: Test popup UI functionality
 3. **Settings Management**: Verify settings persistence
 4. **Scraping Simulation**: Test with mock Amazon pages
 5. **Email Generation**: Verify email template rendering
@@ -383,6 +423,7 @@ npm run format            # Prettier formatting
 ## Version Control & CI/CD
 
 ### Git Repository Structure
+
 ```
 .github/
 ├── workflows/
@@ -403,12 +444,14 @@ LICENSE                               # Project license
 ### Development Workflow
 
 #### Branch Strategy
+
 - `main` - Production-ready code
 - `develop` - Integration branch
 - `feature/*` - Feature development
 - `hotfix/*` - Bug fixes
 
 #### Commit Workflow
+
 1. **Feature Development**: Work on feature branch
 2. **Testing**: Run full test suite locally
 3. **Code Review**: Create PR to develop branch
@@ -419,6 +462,7 @@ LICENSE                               # Project license
 #### GitHub Actions Workflows
 
 ##### `.github/workflows/test.yml`
+
 ```yaml
 name: Test Suite
 on: [push, pull_request]
@@ -438,6 +482,7 @@ jobs:
 ```
 
 ##### `.github/workflows/build.yml`
+
 ```yaml
 name: Build Extension
 on:
@@ -461,17 +506,20 @@ jobs:
 ### Quality Assurance
 
 #### Pre-commit Hooks
+
 - ESLint for code quality
 - Prettier for formatting
 - Unit tests must pass
 - No console.log statements in production code
 
 #### Code Coverage Requirements
+
 - Minimum 80% code coverage
 - 100% coverage for critical functions (database, email, scraping)
 - Coverage reports in CI/CD
 
 #### Performance Benchmarks
+
 - Sync 1000 highlights: <2 minutes
 - Database operations: <100ms per operation
 - Memory usage: <50MB peak
@@ -480,6 +528,7 @@ jobs:
 ## Development Environment Setup
 
 ### Required Software
+
 1. **Node.js 18+** - JavaScript runtime
 2. **Chrome/Edge Developer Mode** - Extension testing
 3. **Git** - Version control
@@ -489,6 +538,7 @@ jobs:
    - Chrome Extension Pack
 
 ### Initial Setup Commands
+
 ```bash
 # Initialize project
 npm init -y
@@ -506,17 +556,19 @@ git push -u origin main
 ```
 
 ### EmailJS Setup
+
 1. Create account at [emailjs.com](https://emailjs.com)
 2. Configure email service (Gmail recommended)
 3. Create email template
 4. Get API credentials:
    - Service ID
-   - Template ID  
+   - Template ID
    - Public Key
 
 ---
 
-**Next Steps**: 
+**Next Steps**:
+
 1. Set up development environment and testing framework
 2. Initialize Git repository with proper structure
 3. Set up EmailJS account and get API credentials

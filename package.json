@@ -16,7 +16,13 @@
     "build": "web-ext build --source-dir=. --artifacts-dir=dist",
     "package": "npm run build"
   },
-  "keywords": ["kindle", "highlights", "email", "chrome-extension", "productivity"],
+  "keywords": [
+    "kindle",
+    "highlights",
+    "email",
+    "chrome-extension",
+    "productivity"
+  ],
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {

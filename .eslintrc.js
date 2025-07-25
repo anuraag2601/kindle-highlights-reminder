@@ -4,33 +4,30 @@ module.exports = {
     es2021: true,
     node: true,
     jest: true,
-    webextensions: true
+    webextensions: true,
   },
-  extends: [
-    'eslint:recommended',
-    'prettier'
-  ],
+  extends: ['eslint:recommended', 'prettier'],
   parserOptions: {
     ecmaVersion: 2021,
-    sourceType: 'module'
+    sourceType: 'module',
   },
   globals: {
     chrome: 'readonly',
-    browser: 'readonly'
+    browser: 'readonly',
   },
   rules: {
     'no-console': 'warn',
     'no-debugger': 'error',
     'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'prefer-const': 'error',
-    'no-var': 'error'
+    'no-var': 'error',
   },
   overrides: [
     {
       files: ['tests/**/*.js'],
       rules: {
-        'no-console': 'off'
-      }
-    }
-  ]
+        'no-console': 'off',
+      },
+    },
+  ],
 };

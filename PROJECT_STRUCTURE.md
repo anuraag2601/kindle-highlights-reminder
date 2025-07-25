@@ -5,7 +5,7 @@
 ```
 kindle-highlights-reminder/
 ├── README.md                           # Project documentation
-├── IMPLEMENTATION_PLAN.md              # Detailed implementation plan  
+├── IMPLEMENTATION_PLAN.md              # Detailed implementation plan
 ├── PROJECT_STRUCTURE.md               # This file
 ├── kindle-highlights-reminder-app-specs.md # Original specification
 │
@@ -80,6 +80,7 @@ kindle-highlights-reminder/
 ### Core Extension Files
 
 #### `manifest.json`
+
 - Extension metadata and permissions
 - Service worker registration
 - Content script definitions
@@ -87,6 +88,7 @@ kindle-highlights-reminder/
 - Cross-browser compatibility settings
 
 #### `background.js`
+
 - Service worker main entry point
 - Alarm/scheduling management
 - Message passing coordination
@@ -96,6 +98,7 @@ kindle-highlights-reminder/
 ### User Interface
 
 #### `popup/` Directory
+
 - **popup.html**: Main extension popup interface
   - Current sync status display
   - Quick stats (total highlights, books)
@@ -115,6 +118,7 @@ kindle-highlights-reminder/
   - Status indicator styling
 
 #### `options/` Directory
+
 - **options.html**: Full settings page
   - Email configuration section
   - Sync preferences
@@ -137,6 +141,7 @@ kindle-highlights-reminder/
 ### Core Logic
 
 #### `content-scripts/` Directory
+
 - **scraper.js**: Main Amazon page scraping
   - Page state detection
   - Navigation to notebook sections
@@ -157,6 +162,7 @@ kindle-highlights-reminder/
   - Error state recovery
 
 #### `lib/` Directory
+
 - **database.js**: IndexedDB operations
   - Database initialization and migrations
   - CRUD operations for all object stores
@@ -201,6 +207,7 @@ kindle-highlights-reminder/
 ### Templates and Assets
 
 #### `templates/` Directory
+
 - **email-template.html**: Rich HTML email template
   - Responsive email design
   - Highlight presentation formatting
@@ -213,11 +220,13 @@ kindle-highlights-reminder/
   - Accessibility-friendly
 
 #### `icons/` Directory
+
 - Multiple sizes for different contexts
 - Disabled state versions
 - High-DPI support
 
 #### `styles/` Directory
+
 - **common.css**: Shared styles across all components
 - **variables.css**: CSS custom properties for consistent theming
 - **themes.css**: Light/dark theme definitions

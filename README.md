@@ -14,9 +14,11 @@ A Chrome/Edge browser extension that automatically extracts Kindle highlights fr
 ## Installation
 
 ### From Chrome Web Store
-*Coming soon...*
+
+_Coming soon..._
 
 ### Manual Installation (Development)
+
 1. Clone this repository
 2. Run `npm install` to install dependencies
 3. Open Chrome/Edge and navigate to `chrome://extensions/`
@@ -26,11 +28,13 @@ A Chrome/Edge browser extension that automatically extracts Kindle highlights fr
 ## Development
 
 ### Prerequisites
+
 - Node.js 18+
 - Chrome or Edge browser
 - Git
 
 ### Setup
+
 ```bash
 git clone https://github.com/yourusername/kindle-highlights-reminder.git
 cd kindle-highlights-reminder
@@ -38,6 +42,7 @@ npm install
 ```
 
 ### Testing
+
 ```bash
 npm test              # Run all tests
 npm run test:unit     # Unit tests only
@@ -46,12 +51,14 @@ npm run test:coverage # Coverage report
 ```
 
 ### Code Quality
+
 ```bash
 npm run lint          # ESLint checks
 npm run format        # Format with Prettier
 ```
 
 ### Building
+
 ```bash
 npm run build         # Create extension package
 ```
@@ -61,12 +68,14 @@ npm run build         # Create extension package
 The extension supports multiple email services:
 
 ### EmailJS (Recommended)
+
 1. Create account at [emailjs.com](https://emailjs.com)
 2. Set up email service (Gmail, Outlook, etc.)
 3. Create email template
 4. Configure API credentials in extension settings
 
 ### Custom Webhook
+
 Provide your own webhook endpoint that accepts POST requests with highlight data.
 
 ## Usage

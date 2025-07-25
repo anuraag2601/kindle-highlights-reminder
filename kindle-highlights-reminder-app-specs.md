@@ -1,11 +1,13 @@
 # Kindle Highlights Browser Extension - Complete Specification
 
 ## Project Overview
+
 A Chrome/Edge browser extension that automatically extracts Kindle highlights from Amazon's read.amazon.com/notebook interface, stores them in a local database, and sends daily email digests with shuffled, interesting highlights to promote knowledge retention through spaced repetition.
 
 ## Architecture Components
 
 ### 1. Browser Extension Structure
+
 ```
 kindle-highlights-extension/
 ├── manifest.json
@@ -100,6 +102,7 @@ kindle-highlights-extension/
 ### 3. Core Functionality Specifications
 
 #### 3.1 Authentication & Session Management
+
 ```javascript
 // Detect if user is logged into Amazon
 // Store session cookies securely
@@ -108,6 +111,7 @@ kindle-highlights-extension/
 ```
 
 #### 3.2 Scraping Logic
+
 ```javascript
 // URL: https://read.amazon.com/notebook
 
@@ -131,6 +135,7 @@ kindle-highlights-extension/
 ```
 
 #### 3.3 Highlight Selection Algorithm
+
 ```javascript
 class HighlightSelector {
   constructor(mode) {
@@ -138,7 +143,7 @@ class HighlightSelector {
   }
 
   selectHighlights(count = 5) {
-    switch(this.mode) {
+    switch (this.mode) {
       case 'random':
         return this.randomSelection(count);
       case 'spaced-repetition':
@@ -160,6 +165,7 @@ class HighlightSelector {
 ```
 
 #### 3.4 Email Service Implementation
+
 ```javascript
 // Email Template
 const emailTemplate = `
@@ -207,6 +213,7 @@ const emailTemplate = `
 ### 4. User Interface Specifications
 
 #### 4.1 Popup Interface
+
 ```html
 <!-- popup.html -->
 <div class="popup-container">
@@ -214,7 +221,7 @@ const emailTemplate = `
     <h1>Kindle Highlights</h1>
     <span class="sync-status">Last sync: 2 hours ago</span>
   </header>
-  
+
   <div class="stats">
     <div class="stat-item">
       <span class="stat-number">{{totalHighlights}}</span>
@@ -225,19 +232,19 @@ const emailTemplate = `
       <span class="stat-label">Books</span>
     </div>
   </div>
-  
+
   <div class="actions">
     <button id="sync-now">Sync Now</button>
     <button id="send-test-email">Send Test Email</button>
   </div>
-  
+
   <div class="quick-settings">
     <label>
-      <input type="checkbox" id="auto-sync-toggle">
+      <input type="checkbox" id="auto-sync-toggle" />
       Auto-sync enabled
     </label>
   </div>
-  
+
   <footer>
     <a href="#" id="open-settings">Settings</a>
     <a href="#" id="view-highlights">View All Highlights</a>
@@ -246,35 +253,16 @@ const emailTemplate = `
 ```
 
 #### 4.2 Options Page
+
 ```html
 <!-- Full settings interface with sections for: -->
-1. Email Configuration
-   - Email address
-   - Delivery time
-   - Frequency
-   - Number of highlights per email
-   - Email service setup
-
-2. Sync Settings
-   - Auto-sync frequency
-   - Manual sync button
-   - Clear cache option
-
-3. Highlight Selection
-   - Selection algorithm
-   - Filter by books
-   - Exclude certain highlights
-
-4. Data Management
-   - Export highlights (JSON/CSV)
-   - Import highlights
-   - Clear all data
-   - Backup/Restore
-
-5. Advanced
-   - Debug mode
-   - Performance settings
-   - API endpoints (if using custom backend)
+1. Email Configuration - Email address - Delivery time - Frequency - Number of
+highlights per email - Email service setup 2. Sync Settings - Auto-sync
+frequency - Manual sync button - Clear cache option 3. Highlight Selection -
+Selection algorithm - Filter by books - Exclude certain highlights 4. Data
+Management - Export highlights (JSON/CSV) - Import highlights - Clear all data -
+Backup/Restore 5. Advanced - Debug mode - Performance settings - API endpoints
+(if using custom backend)
 ```
 
 ### 5. Background Service Worker Tasks
@@ -329,12 +317,12 @@ const ErrorHandler = {
       fallbackParsing();
     }
   },
-  
+
   handleEmailError(error) {
     // Store failed email in queue
     // Retry with exponential backoff
     // Notify user after 3 failures
-  }
+  },
 };
 ```
 
@@ -382,26 +370,31 @@ const ErrorHandler = {
 ### 10. Development Phases
 
 **Phase 1**: Core Extension Setup
+
 - Basic manifest and structure
 - Popup UI
 - Settings storage
 
 **Phase 2**: Scraping Implementation
+
 - Content script for highlight extraction
 - Pagination handling
 - Error handling
 
 **Phase 3**: Database Layer
+
 - IndexedDB setup
 - CRUD operations
 - Migration support
 
 **Phase 4**: Email Service
+
 - Template system
 - Multiple service support
 - Scheduling
 
 **Phase 5**: Polish & Optimization
+
 - Performance improvements
 - Better error handling
 - User onboarding
