@@ -25,7 +25,7 @@
   "content_scripts": [
     {
       "matches": ["*://read.amazon.com/*"],
-      "js": ["content-scripts/scraper.js", "content-scripts/parser.js"],
+      "js": ["content-scripts/parser.js", "content-scripts/scraper.js"],
       "run_at": "document_idle"
     }
   ],

@@ -498,4 +498,5 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { KindleParser };
 } else {
   window.KindleParser = KindleParser;
+  console.log('KindleParser exported to window.KindleParser');
 }

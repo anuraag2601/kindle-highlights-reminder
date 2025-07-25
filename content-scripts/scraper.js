@@ -414,16 +414,43 @@ class RateLimiter {
   }
 }
 
-// Initialize scraper
-const scraper = new KindleScraper();
+// Initialize scraper with safety check
+function initializeScraper() {
+  if (typeof KindleParser === 'undefined') {
+    console.warn('KindleParser not yet loaded, retrying...');
+    setTimeout(initializeScraper, 100);
+    return;
+  }
+  
+  console.log('Initializing KindleScraper with loaded KindleParser');
+  window.scraper = new KindleScraper();
+}
+
+// Start initialization
+initializeScraper();
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'start-scraping') {
-    scraper.scrapeHighlights(request.options || {}).then(result => {
+    // Ensure scraper is initialized
+    if (!window.scraper) {
+      sendResponse({
+        status: 'error',
+        message: 'Scraper not yet initialized. Please wait and try again.'
+      });
+      return;
+    }
+    
+    window.scraper.scrapeHighlights(request.options || {}).then(result => {
       sendResponse(result);
+    }).catch(error => {
+      sendResponse({
+        status: 'error',
+        message: error.message
+      });
     });
-    return true; // Keep message channel open
+    
+    return true; // Keep message channel open for async response
   }
 });
 
