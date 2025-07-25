@@ -14,7 +14,8 @@
   ],
   
   "host_permissions": [
-    "*://read.amazon.com/*"
+    "*://read.amazon.com/*",
+    "https://cdn.jsdelivr.net/*"
   ],
   
   "background": {

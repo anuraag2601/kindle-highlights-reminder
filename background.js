@@ -1,12 +1,18 @@
 // Kindle Highlights Reminder - Background Service Worker
 // Handles extension lifecycle, alarms, and message passing
 
-// Import database module (we'll create this next)
-// import { Database } from './lib/database.js';
+// Import modules
+importScripts('lib/database.js');
+importScripts('lib/email-service.js');
+importScripts('lib/highlight-selector.js');
+importScripts('lib/email-scheduler.js');
 
 class BackgroundService {
   constructor() {
     this.isInitialized = false;
+    this.emailService = emailService;
+    this.highlightSelector = new HighlightSelector(database);
+    this.emailScheduler = emailScheduler;
     this.setupEventListeners();
   }
 
@@ -43,6 +49,9 @@ class BackgroundService {
     try {
       // Initialize default settings
       await this.initializeDefaultSettings();
+      
+      // Initialize email system
+      await this.initializeEmailSystem();
       
       // Set up default alarms
       await this.setupDefaultAlarms();
@@ -85,8 +94,23 @@ class BackgroundService {
           break;
           
         case 'send-test-email':
-          const emailResult = await this.sendTestEmail();
-          sendResponse({ success: true, data: emailResult });
+          const emailResult = await this.sendTestEmail(request.email);
+          sendResponse({ success: emailResult.status === 'success', data: emailResult });
+          break;
+          
+        case 'send-email-now':
+          const immediateResult = await this.sendEmailNow();
+          sendResponse({ success: immediateResult.status === 'success', data: immediateResult });
+          break;
+          
+        case 'preview-email':
+          const previewResult = await this.previewEmail(request.count);
+          sendResponse({ success: previewResult.status === 'success', data: previewResult });
+          break;
+          
+        case 'get-email-stats':
+          const statsResult = await this.getEmailStats();
+          sendResponse({ success: statsResult.status === 'success', data: statsResult });
           break;
           
         case 'get-settings':
@@ -96,6 +120,26 @@ class BackgroundService {
           
         case 'save-settings':
           await this.saveSettings(request.settings);
+          // Update email schedule when settings change
+          await this.updateEmailSchedule(request.settings);
+          sendResponse({ success: true });
+          break;
+
+        case 'scraping-progress':
+          // Handle progress updates from content script
+          this.handleScrapingProgress(request.progress);
+          sendResponse({ success: true });
+          break;
+
+        case 'page-detected':
+          // Handle page detection from content script
+          console.log('Kindle notebook page detected:', request.url);
+          sendResponse({ success: true });
+          break;
+
+        case 'auth-required':
+          // Handle authentication required
+          console.log('Authentication required for scraping');
           sendResponse({ success: true });
           break;
           
@@ -117,12 +161,17 @@ class BackgroundService {
           await this.performScheduledSync();
           break;
           
-        case 'send-email':
-          await this.sendScheduledEmail();
+        case 'kindle-highlights-reminder':
+          await this.emailScheduler.handleAlarmTriggered(alarm);
           break;
           
         default:
-          console.warn('Unknown alarm:', alarm.name);
+          // Handle other alarms (like test alarms)
+          if (alarm.name.startsWith('test-')) {
+            console.log('Test alarm triggered:', alarm.name);
+          } else {
+            console.warn('Unknown alarm:', alarm.name);
+          }
       }
     } catch (error) {
       console.error('Alarm handling error:', error);
@@ -183,11 +232,10 @@ class BackgroundService {
       });
     }
     
-    // Set up email alarm
-    const emailTime = this.getNextEmailTime(settings.emailTime);
-    await chrome.alarms.create('send-email', {
-      when: emailTime
-    });
+    // Set up email scheduling via email scheduler
+    if (settings.emailFrequency !== 'manual') {
+      await this.emailScheduler.scheduleEmails(settings);
+    }
     
     console.log('Default alarms set up');
   }
@@ -214,32 +262,327 @@ class BackgroundService {
   }
 
   async getHighlightStats() {
-    // TODO: Implement when database is ready
-    // For now, return mock data
-    return {
-      totalHighlights: 0,
-      totalBooks: 0,
-      lastSyncTime: null,
-      syncStatus: 'never_synced'
-    };
+    try {
+      // Initialize database if needed
+      await database.init();
+      
+      // Get actual stats from database
+      const stats = await database.getStats();
+      
+      return stats;
+    } catch (error) {
+      console.error('Failed to get highlight stats:', error);
+      return {
+        totalHighlights: 0,
+        totalBooks: 0,
+        lastSyncTime: null,
+        syncStatus: 'error'
+      };
+    }
   }
 
   async initiateSync() {
-    // TODO: Implement sync logic
-    console.log('Sync initiated - not yet implemented');
-    return {
-      status: 'not_implemented',
-      message: 'Sync functionality will be implemented in Milestone 2'
-    };
+    console.log('Initiating sync with Amazon Kindle notebook...');
+    
+    try {
+      // Check if user is on Amazon Kindle notebook page
+      const tabs = await this.getKindleNotebookTabs();
+      
+      if (tabs.length === 0) {
+        // Open Kindle notebook page
+        const tab = await chrome.tabs.create({
+          url: 'https://read.amazon.com/notebook',
+          active: false
+        });
+        
+        // Wait for page to load
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        return this.performSyncOnTab(tab.id);
+      } else {
+        // Use existing tab
+        return this.performSyncOnTab(tabs[0].id);
+      }
+      
+    } catch (error) {
+      console.error('Sync initiation failed:', error);
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
   }
 
-  async sendTestEmail() {
-    // TODO: Implement email sending
-    console.log('Test email requested - not yet implemented');
-    return {
-      status: 'not_implemented',
-      message: 'Email functionality will be implemented in Milestone 4'
+  async getKindleNotebookTabs() {
+    const tabs = await chrome.tabs.query({
+      url: ['*://read.amazon.com/notebook*', '*://read.amazon.com/kp/notebook*']
+    });
+    return tabs;
+  }
+
+  async performSyncOnTab(tabId) {
+    return new Promise((resolve) => {
+      // Send message to content script to start scraping
+      chrome.tabs.sendMessage(tabId, { action: 'start-scraping' }, async (response) => {
+        if (chrome.runtime.lastError) {
+          resolve({
+            status: 'error',
+            message: 'Failed to communicate with content script: ' + chrome.runtime.lastError.message
+          });
+          return;
+        }
+
+        if (!response) {
+          resolve({
+            status: 'error',
+            message: 'No response from content script'
+          });
+          return;
+        }
+
+        if (response.status === 'success') {
+          // Store the scraped data in the database
+          const storeResult = await this.storeScrapedData(response.data);
+          
+          // Record sync history
+          await this.recordSyncHistory(response.data, storeResult);
+          
+          // Update settings with new stats
+          await this.updateSyncStats(response.data);
+          
+          resolve({
+            status: 'success',
+            message: `Successfully synced ${response.data.highlights.length} highlights from ${response.data.books.length} books`,
+            data: {
+              totalBooks: response.data.books.length,
+              totalHighlights: response.data.highlights.length,
+              errors: response.data.stats?.errors || []
+            }
+          });
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+
+  async storeScrapedData(scrapedData) {
+    const { books, highlights } = scrapedData;
+    const results = {
+      booksAdded: 0,
+      highlightsAdded: 0,
+      errors: []
     };
+
+    try {
+      // Initialize database
+      await database.init();
+
+      // Store books first
+      for (const book of books) {
+        try {
+          // Remove sourceElement before storing
+          const cleanBook = { ...book };
+          delete cleanBook.sourceElement;
+          
+          await database.addBook(cleanBook);
+          results.booksAdded++;
+        } catch (error) {
+          console.warn('Error storing book:', error);
+          results.errors.push({
+            type: 'book',
+            item: book.title,
+            error: error.message
+          });
+        }
+      }
+
+      // Store highlights
+      for (const highlight of highlights) {
+        try {
+          await database.addHighlight(highlight);
+          results.highlightsAdded++;
+        } catch (error) {
+          console.warn('Error storing highlight:', error);
+          results.errors.push({
+            type: 'highlight',
+            item: highlight.text.substring(0, 50) + '...',
+            error: error.message
+          });
+        }
+      }
+
+      console.log(`Stored ${results.booksAdded} books and ${results.highlightsAdded} highlights`);
+      return results;
+
+    } catch (error) {
+      console.error('Database storage failed:', error);
+      results.errors.push({
+        type: 'database',
+        item: 'initialization',
+        error: error.message
+      });
+      return results;
+    }
+  }
+
+  async recordSyncHistory(scrapedData, storeResult) {
+    try {
+      await database.addSyncRecord({
+        highlightsAdded: storeResult.highlightsAdded,
+        highlightsTotal: scrapedData.highlights.length,
+        status: storeResult.errors.length > 0 ? 'partial' : 'success',
+        errorMessage: storeResult.errors.length > 0 ? 
+          `${storeResult.errors.length} items failed to store` : ''
+      });
+    } catch (error) {
+      console.error('Failed to record sync history:', error);
+    }
+  }
+
+  async updateSyncStats(scrapedData) {
+    try {
+      const currentSettings = await this.getSettings();
+      await this.saveSettings({
+        ...currentSettings,
+        lastSyncTime: Date.now(),
+        totalBooks: scrapedData.books.length,
+        totalHighlights: scrapedData.highlights.length
+      });
+    } catch (error) {
+      console.error('Failed to update sync stats:', error);
+    }
+  }
+
+  async initializeEmailSystem() {
+    try {
+      await database.init();
+      await this.emailScheduler.init(database, this.emailService, this.highlightSelector);
+      console.log('Email system initialized');
+    } catch (error) {
+      console.error('Failed to initialize email system:', error);
+    }
+  }
+
+  async sendTestEmail(email) {
+    try {
+      if (!email) {
+        const settings = await this.getSettings();
+        email = settings.email;
+      }
+      
+      if (!email) {
+        return {
+          status: 'error',
+          message: 'No email address provided'
+        };
+      }
+
+      console.log('Sending test email to:', email);
+      const result = await this.emailService.sendTestEmail(email);
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to send test email:', error);
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  async sendEmailNow() {
+    try {
+      const settings = await this.getSettings();
+      
+      if (!settings.email) {
+        return {
+          status: 'error',
+          message: 'No email address configured'
+        };
+      }
+
+      console.log('Sending email immediately');
+      const result = await this.emailScheduler.sendEmailNow(settings);
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to send email now:', error);
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  async previewEmail(count = 5) {
+    try {
+      const settings = await this.getSettings();
+      
+      // Select highlights for preview
+      const selectionResult = await this.highlightSelector.previewSelection(
+        count,
+        settings
+      );
+
+      if (selectionResult.status !== 'success') {
+        return selectionResult;
+      }
+
+      // Generate email preview  
+      const previewResult = await this.emailService.generateEmailPreview(
+        selectionResult.highlights,
+        settings
+      );
+
+      return {
+        status: 'success',
+        preview: previewResult.preview,
+        selectionInfo: {
+          totalAvailable: selectionResult.totalAvailable,
+          filteredCount: selectionResult.filteredCount,
+          algorithm: selectionResult.algorithm
+        }
+      };
+    } catch (error) {
+      console.error('Failed to preview email:', error);
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  async getEmailStats() {
+    try {
+      const [emailStats, schedulingStats] = await Promise.all([
+        this.emailService.getEmailStats(),
+        this.emailScheduler.getSchedulingStats()
+      ]);
+
+      return {
+        status: 'success',
+        emailStats: emailStats.status === 'success' ? emailStats.stats : null,
+        scheduling: schedulingStats.status === 'success' ? schedulingStats.scheduling : null
+      };
+    } catch (error) {
+      console.error('Failed to get email stats:', error);
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  }
+
+  async updateEmailSchedule(settings) {
+    try {
+      if (settings.emailFrequency && settings.emailTime) {
+        await this.emailScheduler.updateSchedule(settings);
+        console.log('Email schedule updated');
+      }
+    } catch (error) {
+      console.error('Failed to update email schedule:', error);
+    }
   }
 
   async getSettings() {
@@ -273,6 +616,18 @@ class BackgroundService {
   onAmazonNotebookDetected(tabId, tab) {
     console.log('Amazon notebook page detected, could trigger sync');
     // TODO: Show page action or offer to sync
+  }
+
+  handleScrapingProgress(progress) {
+    console.log('Scraping progress:', progress);
+    
+    // Could show progress notification or update popup if needed
+    if (progress.errors > 0) {
+      console.warn(`Scraping has ${progress.errors} errors so far`);
+    }
+    
+    // Store progress for popup to show
+    this.currentScrapingProgress = progress;
   }
 
   getNextEmailTime(timeString) {

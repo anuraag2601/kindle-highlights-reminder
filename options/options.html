@@ -15,47 +15,267 @@
 
     <main>
       <section class="settings-section">
-        <h2>Email Configuration</h2>
+        <h2>📧 Email Configuration</h2>
         <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" placeholder="your@email.com">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" placeholder="your@email.com" required>
+          <span class="field-error" id="email-error"></span>
+          <small class="field-help">Where to send your daily highlight reminders</small>
         </div>
         
         <div class="form-group">
           <label for="email-time">Daily Email Time</label>
           <input type="time" id="email-time" value="09:00">
+          <small class="field-help">When to receive your daily highlights</small>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="highlights-count">Highlights per Email</label>
+            <input type="number" id="highlights-count" min="1" max="20" value="5">
+            <small class="field-help">Number of highlights to include</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="email-frequency">Email Frequency</label>
+            <select id="email-frequency">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="manual">Manual Only</option>
+            </select>
+          </div>
         </div>
         
         <div class="form-group">
-          <label for="highlights-count">Highlights per Email</label>
-          <input type="number" id="highlights-count" min="1" max="20" value="5">
+          <div class="button-group">
+            <button type="button" id="test-email" class="test-button">
+              📤 Send Test Email
+            </button>
+            <button type="button" id="preview-email" class="action-button">
+              👁️ Preview Email
+            </button>
+            <button type="button" id="send-email-now" class="action-button">
+              📧 Send Email Now
+            </button>
+          </div>
+          <span class="test-status" id="test-email-status"></span>
         </div>
       </section>
 
       <section class="settings-section">
-        <h2>Sync Settings</h2>
+        <h2>🔄 Sync Settings</h2>
         <div class="form-group">
-          <label>
+          <label class="toggle-label">
             <input type="checkbox" id="auto-sync" checked>
+            <span class="toggle-slider"></span>
             Enable automatic sync
           </label>
+          <small class="field-help">Automatically sync highlights from Amazon</small>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="sync-frequency">Sync every (hours)</label>
+            <input type="number" id="sync-frequency" min="1" max="24" value="6">
+          </div>
+          
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="enable-notifications" checked>
+              <span class="toggle-slider"></span>
+              Show notifications
+            </label>
+          </div>
         </div>
         
         <div class="form-group">
-          <label for="sync-frequency">Sync every (hours)</label>
-          <input type="number" id="sync-frequency" min="1" max="24" value="6">
+          <button type="button" id="sync-now" class="action-button">
+            🔄 Sync Now
+          </button>
+          <span class="sync-status" id="sync-status"></span>
         </div>
       </section>
 
       <section class="settings-section">
-        <h2>Highlight Selection</h2>
+        <h2>🎯 Highlight Selection</h2>
         <div class="form-group">
-          <label for="selection-mode">Selection Mode</label>
+          <label for="selection-mode">Selection Algorithm</label>
           <select id="selection-mode">
-            <option value="spaced-repetition">Spaced Repetition</option>
-            <option value="random">Random</option>
+            <option value="spaced-repetition">Spaced Repetition (Recommended)</option>
+            <option value="random">Random Selection</option>
             <option value="oldest-first">Oldest First</option>
+            <option value="newest-first">Newest First</option>
+            <option value="most-highlighted">From Most Highlighted Books</option>
           </select>
+          <small class="field-help">How highlights are chosen for emails</small>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="prioritize-notes" checked>
+              <span class="toggle-slider"></span>
+              Prioritize highlights with notes
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="include-book-info" checked>
+              <span class="toggle-slider"></span>
+              Include book information
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>💾 Data Management</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3 id="total-books">0</h3>
+            <p>Books</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="total-highlights">0</h3>
+            <p>Highlights</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="last-sync">Never</h3>
+            <p>Last Sync</p>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <h3>Export & Import</h3>
+          <div class="button-group">
+            <button type="button" id="export-data" class="action-button">
+              📥 Export Data
+            </button>
+            <label for="import-file" class="action-button file-input-label">
+              📤 Import Data
+              <input type="file" id="import-file" accept=".json" style="display: none;">
+            </label>
+          </div>
+          <small class="field-help">Backup and restore your highlights data</small>
+        </div>
+        
+        <div class="form-group">
+          <h3>Database Maintenance</h3>
+          <div class="button-group">
+            <button type="button" id="cleanup-data" class="secondary-button">
+              🧹 Cleanup Database
+            </button>
+            <button type="button" id="clear-data" class="danger-button">
+              🗑️ Clear All Data
+            </button>
+          </div>
+          <small class="field-help">Optimize database and remove unnecessary data</small>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>📊 Statistics & Analytics</h2>
+        <div class="analytics-container" id="analytics-container">
+          <p class="loading">Loading analytics...</p>
+        </div>
+        
+        <div class="form-group">
+          <button type="button" id="refresh-stats" class="secondary-button">
+            🔄 Refresh Statistics
+          </button>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>✨ Highlight Management</h2>
+        
+        <!-- Search and Filter Controls -->
+        <div class="highlight-controls">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="highlight-search">Search Highlights</label>
+              <input type="text" id="highlight-search" placeholder="Search text, notes, or tags...">
+            </div>
+            <div class="form-group">
+              <label for="book-filter">Filter by Book</label>
+              <select id="book-filter">
+                <option value="">All Books</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="color-filter">Filter by Color</label>
+              <select id="color-filter">
+                <option value="">All Colors</option>
+                <option value="yellow">Yellow</option>
+                <option value="blue">Blue</option>
+                <option value="pink">Pink</option>
+                <option value="orange">Orange</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sort-by">Sort By</label>
+              <select id="sort-by">
+                <option value="dateHighlighted">Date Highlighted</option>
+                <option value="dateAdded">Date Added</option>
+                <option value="location">Location</option>
+                <option value="color">Color</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="button-group">
+            <button type="button" id="search-highlights" class="action-button">
+              🔍 Search
+            </button>
+            <button type="button" id="clear-filters" class="secondary-button">
+              🗂️ Clear Filters
+            </button>
+            <button type="button" id="bulk-actions-toggle" class="secondary-button">
+              📝 Bulk Actions
+            </button>
+          </div>
+        </div>
+
+        <!-- Bulk Actions Panel (initially hidden) -->
+        <div class="bulk-actions-panel" id="bulk-actions-panel" style="display: none;">
+          <div class="bulk-actions-header">
+            <span id="selected-count">0 highlights selected</span>
+            <div class="button-group">
+              <button type="button" id="bulk-tag" class="action-button">
+                🏷️ Add Tags
+              </button>
+              <button type="button" id="bulk-delete" class="danger-button">
+                🗑️ Delete Selected
+              </button>
+              <button type="button" id="select-all" class="secondary-button">
+                ☑️ Select All
+              </button>
+              <button type="button" id="select-none" class="secondary-button">
+                ◻️ Select None
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Highlights List -->
+        <div class="highlights-container" id="highlights-container">
+          <p class="loading">Click "Search" to load highlights...</p>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" id="pagination-container" style="display: none;">
+          <div class="pagination-info">
+            <span id="pagination-info"></span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" id="prev-page" class="secondary-button">← Previous</button>
+            <span id="page-numbers"></span>
+            <button type="button" id="next-page" class="secondary-button">Next →</button>
+          </div>
         </div>
       </section>
     </main>
@@ -66,6 +286,7 @@
     </footer>
   </div>
 
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
