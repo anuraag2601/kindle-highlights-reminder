@@ -89,7 +89,9 @@ class BackgroundService {
     try {
       switch (request.action) {
         case 'get-stats':
+          console.log('Handling get-stats request...');
           const stats = await this.getHighlightStats();
+          console.log('Sending stats response...');
           sendResponse({ success: true, data: stats });
           break;
           
@@ -119,7 +121,9 @@ class BackgroundService {
           break;
           
         case 'get-settings':
+          console.log('Handling get-settings request...');
           const settings = await this.getSettings();
+          console.log('Sending settings response...');
           sendResponse({ success: true, data: settings });
           break;
           
@@ -278,11 +282,25 @@ class BackgroundService {
 
   async getHighlightStats() {
     try {
-      // Initialize database if needed
-      await database.init();
+      console.log('Getting highlight stats...');
       
-      // Get actual stats from database
-      const stats = await database.getStats();
+      // Initialize database with timeout
+      const initPromise = database.init();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database init timeout')), 5000)
+      );
+      
+      await Promise.race([initPromise, timeoutPromise]);
+      console.log('Database initialized successfully');
+      
+      // Get actual stats from database with timeout
+      const statsPromise = database.getStats();
+      const statsTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Stats query timeout')), 5000)
+      );
+      
+      const stats = await Promise.race([statsPromise, statsTimeoutPromise]);
+      console.log('Stats retrieved:', stats);
       
       return stats;
     } catch (error) {
@@ -291,7 +309,8 @@ class BackgroundService {
         totalHighlights: 0,
         totalBooks: 0,
         lastSyncTime: null,
-        syncStatus: 'error'
+        syncStatus: 'error',
+        error: error.message
       };
     }
   }
@@ -652,8 +671,15 @@ class BackgroundService {
   }
 
   async getSettings() {
-    const result = await chrome.storage.local.get('settings');
-    return result.settings || {};
+    try {
+      console.log('Getting settings...');
+      const result = await chrome.storage.local.get('settings');
+      console.log('Settings retrieved:', result.settings ? 'Found' : 'Not found');
+      return result.settings || {};
+    } catch (error) {
+      console.error('Failed to get settings:', error);
+      return {};
+    }
   }
 
   async saveSettings(newSettings) {
