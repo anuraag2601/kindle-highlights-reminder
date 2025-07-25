@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Kindle Highlights Reminder</title>
+  <link rel="stylesheet" href="welcome.css">
+</head>
+<body>
+  <div class="welcome-container">
+    <div class="welcome-header">
+      <div class="logo">
+        <img src="../icons/icon-128.png" alt="Kindle Highlights Reminder" class="logo-img">
+        <h1>📚 Kindle Highlights Reminder</h1>
+      </div>
+      <p class="tagline">Transform your Kindle highlights into a powerful learning system</p>
+    </div>
+
+    <div class="onboarding-steps">
+      <!-- Step 1: Welcome -->
+      <div class="step active" id="step-1">
+        <div class="step-content">
+          <h2>🎉 Welcome!</h2>
+          <p>Thank you for installing Kindle Highlights Reminder. This extension helps you review your Kindle highlights using spaced repetition for better learning retention.</p>
+          
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon">🔄</div>
+              <h3>Auto Sync</h3>
+              <p>Automatically sync highlights from your Amazon Kindle notebook</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">📧</div>
+              <h3>Smart Emails</h3>
+              <p>Receive personalized email reminders with your best highlights</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">🧠</div>
+              <h3>Spaced Repetition</h3>
+              <p>Optimized learning algorithm to maximize retention</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">📊</div>
+              <h3>Analytics</h3>
+              <p>Track your learning progress and highlight statistics</p>
+            </div>
+          </div>
+
+          <button class="next-btn" onclick="nextStep()">Get Started →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Email Setup -->
+      <div class="step" id="step-2">
+        <div class="step-content">
+          <h2>📧 Email Setup</h2>
+          <p>Set up your email to receive daily highlight reminders. This is optional but recommended for the best experience.</p>
+          
+          <div class="form-group">
+            <label for="welcome-email">Email Address</label>
+            <input type="email" id="welcome-email" placeholder="your@email.com">
+            <small>Your email is only used to send you highlight reminders. We never share it.</small>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="welcome-time">Daily Email Time</label>
+              <input type="time" id="welcome-time" value="09:00">
+            </div>
+            <div class="form-group">
+              <label for="welcome-frequency">Frequency</label>
+              <select id="welcome-frequency">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="manual">Manual Only</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="welcome-count">Highlights per Email</label>
+            <input type="range" id="welcome-count" min="3" max="10" value="5">
+            <span class="range-value" id="count-value">5</span>
+          </div>
+
+          <div class="button-group">
+            <button class="prev-btn" onclick="prevStep()">← Back</button>
+            <button class="next-btn" onclick="nextStep()">Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Sync Setup -->
+      <div class="step" id="step-3">
+        <div class="step-content">
+          <h2>🔄 Sync Your Highlights</h2>
+          <p>Connect to your Amazon Kindle account to import your existing highlights.</p>
+          
+          <div class="sync-instructions">
+            <div class="instruction-step">
+              <div class="step-number">1</div>
+              <div class="step-text">
+                <h4>Go to Amazon Kindle</h4>
+                <p>We'll open your Kindle notebook page where all your highlights are stored.</p>
+                <button class="action-btn" id="open-amazon-btn" onclick="openAmazon()">
+                  🔗 Open Amazon Kindle Notebook
+                </button>
+              </div>
+            </div>
+            
+            <div class="instruction-step">
+              <div class="step-number">2</div>
+              <div class="step-text">
+                <h4>Make sure you're logged in</h4>
+                <p>You should see your books and highlights. If not, please log into your Amazon account.</p>
+              </div>
+            </div>
+            
+            <div class="instruction-step">
+              <div class="step-number">3</div>
+              <div class="step-text">
+                <h4>Start the sync</h4>
+                <p>Click the sync button below to import your highlights.</p>
+                <button class="action-btn" id="sync-btn" onclick="startSync()" disabled>
+                  🔄 Sync My Highlights
+                </button>
+                <div class="sync-status" id="sync-status"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="prev-btn" onclick="prevStep()">← Back</button>
+            <button class="next-btn" id="step3-next" onclick="nextStep()" disabled>Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Test Email -->
+      <div class="step" id="step-4">
+        <div class="step-content">
+          <h2>📤 Test Your Setup</h2>
+          <p>Let's make sure everything is working by sending a test email.</p>
+          
+          <div class="test-section">
+            <div class="test-info">
+              <h4>Email Configuration:</h4>
+              <div class="config-display" id="config-display">
+                <!-- Will be populated by JavaScript -->
+              </div>
+            </div>
+            
+            <div class="test-actions">
+              <button class="action-btn" id="test-email-btn" onclick="sendTestEmail()">
+                📧 Send Test Email
+              </button>
+              <button class="action-btn secondary" id="preview-email-btn" onclick="previewEmail()">
+                👁️ Preview Email
+              </button>
+            </div>
+            
+            <div class="test-status" id="test-status"></div>
+          </div>
+
+          <div class="button-group">
+            <button class="prev-btn" onclick="prevStep()">← Back</button>
+            <button class="next-btn" onclick="nextStep()">Complete Setup →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Complete -->
+      <div class="step" id="step-5">
+        <div class="step-content">
+          <h2>🎉 Setup Complete!</h2>
+          <p>Congratulations! Your Kindle Highlights Reminder is ready to help you learn.</p>
+          
+          <div class="completion-stats" id="completion-stats">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          
+          <div class="next-steps">
+            <h3>What's Next?</h3>
+            <div class="next-step-grid">
+              <div class="next-step-card">
+                <div class="next-step-icon">⚙️</div>
+                <h4>Customize Settings</h4>
+                <p>Fine-tune your email preferences and highlight selection</p>
+                <button class="action-btn small" onclick="openSettings()">Open Settings</button>
+              </div>
+              <div class="next-step-card">
+                <div class="next-step-icon">📖</div>
+                <h4>Read More Books</h4>
+                <p>The more you highlight, the better your learning experience</p>
+              </div>
+              <div class="next-step-card">
+                <div class="next-step-icon">📊</div>
+                <h4>Track Progress</h4>
+                <p>Monitor your learning statistics in the extension popup</p>
+                <button class="action-btn small" onclick="openExtension()">View Extension</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="final-actions">
+            <button class="finish-btn" onclick="finishOnboarding()">
+              ✨ Start Learning!
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress indicator -->
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="step-indicator">
+      <span class="current-step" id="current-step">1</span> of <span class="total-steps">5</span>
+    </div>
+  </div>
+
+  <!-- Email Preview Modal -->
+  <div class="modal" id="email-preview-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Email Preview</h3>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="email-preview-content">
+        <!-- Email preview will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="welcome.js"></script>
+</body>
+</html>

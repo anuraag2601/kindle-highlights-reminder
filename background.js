@@ -6,6 +6,8 @@ importScripts('lib/database.js');
 importScripts('lib/email-service.js');
 importScripts('lib/highlight-selector.js');
 importScripts('lib/email-scheduler.js');
+importScripts('lib/performance-monitor.js');
+importScripts('lib/data-validator.js');
 
 class BackgroundService {
   constructor() {
@@ -13,6 +15,9 @@ class BackgroundService {
     this.emailService = emailService;
     this.highlightSelector = new HighlightSelector(database);
     this.emailScheduler = emailScheduler;
+    this.performanceMonitor = performanceMonitor;
+    this.errorRecovery = errorRecovery;
+    this.dataValidator = dataValidator;
     this.setupEventListeners();
   }
 
@@ -56,9 +61,9 @@ class BackgroundService {
       // Set up default alarms
       await this.setupDefaultAlarms();
       
-      // Show welcome notification
+      // Show welcome page on install
       if (details.reason === 'install') {
-        await this.showWelcomeNotification();
+        await this.showWelcomePage();
       }
       
       this.isInitialized = true;
@@ -250,14 +255,24 @@ class BackgroundService {
     }
   }
 
-  async showWelcomeNotification() {
-    if ('notifications' in chrome) {
-      chrome.notifications.create('welcome', {
-        type: 'basic',
-        iconUrl: 'icons/icon-48.png',
-        title: 'Kindle Highlights Reminder',
-        message: 'Extension installed! Click the extension icon to get started.'
+  async showWelcomePage() {
+    try {
+      // Open welcome page in new tab
+      await chrome.tabs.create({
+        url: chrome.runtime.getURL('onboarding/welcome.html'),
+        active: true
       });
+    } catch (error) {
+      console.error('Failed to open welcome page:', error);
+      // Fallback to notification
+      if ('notifications' in chrome) {
+        chrome.notifications.create('welcome', {
+          type: 'basic',
+          iconUrl: 'icons/icon-48.png',
+          title: 'Kindle Highlights Reminder',
+          message: 'Extension installed! Click the extension icon to get started.'
+        });
+      }
     }
   }
 

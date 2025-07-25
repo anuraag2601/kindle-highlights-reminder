@@ -42,7 +42,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["templates/*"],
+      "resources": ["templates/*", "onboarding/*"],
       "matches": ["*://read.amazon.com/*"]
     }
   ]

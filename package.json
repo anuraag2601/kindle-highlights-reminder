@@ -13,8 +13,11 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "web-ext build --source-dir=. --artifacts-dir=dist",
-    "package": "npm run build"
+    "build": "node build.js",
+    "build:dev": "npm test && node build.js",
+    "build:prod": "npm test && npm run lint && node build.js",
+    "validate": "npm test && npm run lint",
+    "package": "npm run build:prod"
   },
   "keywords": [
     "kindle",

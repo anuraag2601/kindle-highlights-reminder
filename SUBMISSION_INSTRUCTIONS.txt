@@ -1,0 +1,29 @@
+
+Chrome Web Store Submission Checklist:
+
+1. Create ZIP file:
+   - Compress the entire 'dist' folder contents
+   - Do NOT include the 'dist' folder itself, just its contents
+   - Name it: kindle-highlights-reminder.zip
+
+2. Required for Chrome Web Store:
+   ✅ manifest.json (version 3)
+   ✅ Icons (16x16, 48x48, 128x128)
+   ✅ Extension description
+   ✅ Privacy policy (if collecting data)
+   ✅ Screenshots for store listing
+
+3. Store Listing Requirements:
+   - Extension name: "Kindle Highlights Reminder"
+   - Category: Productivity
+   - Description: "Transform your Kindle highlights into a powerful learning system with spaced repetition email reminders"
+   - Screenshots: Include popup, options page, email examples
+   - Privacy policy: Required for email functionality
+
+4. Upload Process:
+   - Go to Chrome Web Store Developer Console
+   - Upload ZIP file
+   - Fill out store listing
+   - Submit for review
+
+Build package ready at: C:\Users\Anuraag Gupta\Desktop\claude-code-experiments\kindle-highlights-reminder\dist
