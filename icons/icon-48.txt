@@ -1,0 +1,3 @@
+This is a placeholder for icon-48.png
+Size: 48x48
+Use icons/generate-icons.html to create proper PNG files.

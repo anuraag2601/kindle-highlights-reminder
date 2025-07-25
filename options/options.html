@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kindle Highlights Reminder - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📚 Kindle Highlights Reminder</h1>
+      <p>Configure your highlight sync and email settings</p>
+    </header>
+
+    <main>
+      <section class="settings-section">
+        <h2>Email Configuration</h2>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="your@email.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="email-time">Daily Email Time</label>
+          <input type="time" id="email-time" value="09:00">
+        </div>
+        
+        <div class="form-group">
+          <label for="highlights-count">Highlights per Email</label>
+          <input type="number" id="highlights-count" min="1" max="20" value="5">
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Sync Settings</h2>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="auto-sync" checked>
+            Enable automatic sync
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label for="sync-frequency">Sync every (hours)</label>
+          <input type="number" id="sync-frequency" min="1" max="24" value="6">
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2>Highlight Selection</h2>
+        <div class="form-group">
+          <label for="selection-mode">Selection Mode</label>
+          <select id="selection-mode">
+            <option value="spaced-repetition">Spaced Repetition</option>
+            <option value="random">Random</option>
+            <option value="oldest-first">Oldest First</option>
+          </select>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button id="save-settings" class="save-button">Save Settings</button>
+      <div id="status-message" class="status-message"></div>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
