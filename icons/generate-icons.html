@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Extension Icons</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .icon-container { margin: 20px 0; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Kindle Highlights Reminder - Icon Generator</h1>
+    <p>Click the buttons below to generate and download extension icons:</p>
+    
+    <div class="icon-container">
+        <canvas id="icon16" width="16" height="16"></canvas>
+        <canvas id="icon48" width="48" height="48"></canvas>
+        <canvas id="icon128" width="128" height="128"></canvas>
+    </div>
+    
+    <div>
+        <button onclick="generateIcons()">Generate Icons</button>
+        <button onclick="downloadIcon(16)">Download 16px</button>
+        <button onclick="downloadIcon(48)">Download 48px</button>
+        <button onclick="downloadIcon(128)">Download 128px</button>
+    </div>
+
+    <script>
+        function generateIcons() {
+            [16, 48, 128].forEach(size => {
+                const canvas = document.getElementById(`icon${size}`);
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, size, size);
+                
+                // Background gradient
+                const gradient = ctx.createLinearGradient(0, 0, size, size);
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, size, size);
+                
+                // Book icon
+                const bookSize = size * 0.6;
+                const x = (size - bookSize) / 2;
+                const y = (size - bookSize) / 2;
+                
+                // Book pages
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x + bookSize * 0.1, y, bookSize * 0.8, bookSize);
+                
+                // Book spine
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(x, y + bookSize * 0.1, bookSize * 0.15, bookSize * 0.8);
+                
+                // Highlight lines (yellow)
+                ctx.fillStyle = '#ffd43b';
+                const lineHeight = Math.max(1, size * 0.02);
+                const lineSpacing = size * 0.08;
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(
+                        x + bookSize * 0.2, 
+                        y + bookSize * 0.3 + (i * lineSpacing), 
+                        bookSize * 0.5, 
+                        lineHeight
+                    );
+                }
+            });
+            
+            console.log('Icons generated successfully!');
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`icon${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Generate icons on page load
+        window.onload = generateIcons;
+    </script>
+</body>
+</html>

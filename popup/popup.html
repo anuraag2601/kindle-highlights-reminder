@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kindle Highlights Reminder</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="header">
+      <h1 class="title">📚 Kindle Highlights</h1>
+      <div class="sync-status" id="sync-status">
+        <span id="sync-text">Never synced</span>
+        <div class="sync-indicator" id="sync-indicator"></div>
+      </div>
+    </header>
+    
+    <div class="stats-container">
+      <div class="stat-item">
+        <span class="stat-number" id="total-highlights">0</span>
+        <span class="stat-label">Highlights</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number" id="total-books">0</span>
+        <span class="stat-label">Books</span>
+      </div>
+    </div>
+    
+    <div class="actions-container">
+      <button class="action-button primary" id="sync-now">
+        <span class="button-icon">🔄</span>
+        <span class="button-text">Sync Now</span>
+      </button>
+      
+      <button class="action-button secondary" id="send-test-email">
+        <span class="button-icon">📧</span>
+        <span class="button-text">Test Email</span>
+      </button>
+    </div>
+    
+    <div class="quick-settings">
+      <label class="toggle-setting">
+        <input type="checkbox" id="auto-sync-toggle">
+        <span class="toggle-slider"></span>
+        <span class="toggle-label">Auto-sync enabled</span>
+      </label>
+    </div>
+    
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text" id="loading-text">Loading...</div>
+    </div>
+    
+    <div class="message-container" id="message-container">
+      <div class="message" id="message"></div>
+    </div>
+    
+    <footer class="footer">
+      <a href="#" class="footer-link" id="open-settings">⚙️ Settings</a>
+      <a href="#" class="footer-link" id="view-highlights">📖 View All</a>
+    </footer>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
