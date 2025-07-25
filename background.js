@@ -3,21 +3,16 @@
 
 // Import modules
 importScripts('lib/database.js');
-importScripts('lib/email-service.js');
+importScripts('lib/simple-email.js');
 importScripts('lib/highlight-selector.js');
 importScripts('lib/email-scheduler.js');
-importScripts('lib/performance-monitor.js');
-importScripts('lib/data-validator.js');
 
 class BackgroundService {
   constructor() {
     this.isInitialized = false;
-    this.emailService = emailService;
+    this.emailService = simpleEmailService;
     this.highlightSelector = new HighlightSelector(database);
     this.emailScheduler = emailScheduler;
-    this.performanceMonitor = self.performanceMonitor || performanceMonitor;
-    this.errorRecovery = self.errorRecovery || errorRecovery;
-    this.dataValidator = self.dataValidator || dataValidator;
     this.setupEventListeners();
   }
 
