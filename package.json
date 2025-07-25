@@ -1,0 +1,33 @@
+{
+  "name": "kindle-highlights-reminder",
+  "version": "0.1.0",
+  "description": "Chrome extension that extracts Kindle highlights and sends daily email reminders",
+  "main": "background.js",
+  "scripts": {
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build": "web-ext build --source-dir=. --artifacts-dir=dist",
+    "package": "npm run build"
+  },
+  "keywords": ["kindle", "highlights", "email", "chrome-extension", "productivity"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.251",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "fake-indexeddb": "^4.0.2",
+    "jest": "^27.5.1",
+    "jest-chrome": "^0.8.0",
+    "jest-environment-jsdom": "^27.5.1",
+    "prettier": "^3.1.0",
+    "web-ext": "^7.8.0"
+  }
+}
