@@ -1,0 +1,52 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "icon128.plasmo.3c1ed2d2.png",
+         "16": "icon16.plasmo.6c567d50.png",
+         "32": "icon32.plasmo.76b92899.png",
+         "48": "icon48.plasmo.aced7582.png",
+         "64": "icon64.plasmo.8bb5e6e0.png"
+      },
+      "default_popup": "popup.html"
+   },
+   "author": "Clippings.io",
+   "background": {
+      "service_worker": "static/background/index.js"
+   },
+   "content_scripts": [ {
+      "css": [ "amazon-contentscript.a9ac59c0.css" ],
+      "js": [ "amazon-contentscript.3c72db48.js" ],
+      "matches": [ "https://read.amazon.com/*", "https://read.amazon.co.jp/*" ]
+   }, {
+      "css": [  ],
+      "js": [ "messaging-contentscript.4585ae59.js" ],
+      "matches": [ "https://my.clippings.io/*", "http://localhost:8080/*" ]
+   } ],
+   "default_locale": "en",
+   "description": "Export your Amazon Kindle Highlights to your favorite integrations or download to multiple file formats.",
+   "externally_connectable": {
+      "matches": [ "*://*.clippings.io/*", "*://localhost/*" ]
+   },
+   "host_permissions": [ "https://read.amazon.com/*", "https://read.amazon.co.jp/*", "https://ext.clippings.io/*" ],
+   "icons": {
+      "128": "icon128.plasmo.3c1ed2d2.png",
+      "16": "icon16.plasmo.6c567d50.png",
+      "32": "icon32.plasmo.76b92899.png",
+      "48": "icon48.plasmo.aced7582.png",
+      "64": "icon64.plasmo.8bb5e6e0.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoIJ4wUgfmbui8B/qdbzUOwX48at3f1m0k4IinI9GWrftyIEeZ+Uz1CG5UCBYyX0ldqgbhiLDpat1S/eavzZhMqQgxwBEWUjsGkvVb4Tq5UF/xi/FwH2zhsxu8nBoi7piM31wWokK9VtpnTdE3P1tTpe4pI31GGjbUc9q7plIpUE+slOAkiMxVJHTKits55DNtO3STOhYCmUMFPluQQJJflT27lRzfHeR3YBZQFZhUfHo3b1uO6Kn4qJd1cQNs7lvRzMQR36NP8s8wAwgX3Anpjx+vAszN3ujnBZErgu2Ax+qWhgzprBS22fk3CCbXLGkVZkTSIdLS5EylYZTJzF0gwIDAQAB",
+   "manifest_version": 3,
+   "name": "Clippings.io for Amazon Kindle Highlights",
+   "options_ui": {
+      "open_in_tab": true,
+      "page": "options.html"
+   },
+   "permissions": [ "storage", "activeTab" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "4.0.6",
+   "web_accessible_resources": [ {
+      "matches": [ "\u003Call_urls>", "https://read.amazon.com/*", "https://read.amazon.co.jp/*" ],
+      "resources": [ "assets/images/*.svg" ]
+   } ]
+}

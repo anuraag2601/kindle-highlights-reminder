@@ -1,13 +1,13 @@
-// Kindle Highlights Reminder - Content Script Scraper
-// Milestone 2: Complete implementation of Amazon Kindle notebook scraping
+// Kindle Highlights Reminder - Advanced Bulk Extraction Scraper
+// Based on analysis of clippings.io extension and Amazon's actual structure
+// Hybrid approach: combines bulk extraction with reliable overlay UI
 
-console.log('Kindle Highlights Reminder: Content script loaded on', window.location.href);
+console.log('Kindle Highlights Reminder: Advanced scraper loaded on', window.location.href);
 
-class KindleScraper {
+class KindleBulkScraper {
   constructor() {
     this.isActive = false;
     this.parser = new KindleParser();
-    this.rateLimiter = new RateLimiter();
     this.scraperState = {
       isRunning: false,
       totalBooks: 0,
@@ -15,6 +15,7 @@ class KindleScraper {
       totalHighlights: 0,
       errors: []
     };
+    this.overlay = null;
     this.init();
   }
 
@@ -68,6 +69,7 @@ class KindleScraper {
     chrome.runtime.sendMessage(message || defaultMessage);
   }
 
+  // Main scraping method using bulk extraction approach
   async scrapeHighlights(options = {}) {
     if (this.scraperState.isRunning) {
       return {
@@ -80,23 +82,31 @@ class KindleScraper {
       this.scraperState.isRunning = true;
       this.scraperState.errors = [];
       
-      console.log('Starting highlight scraping...');
+      console.log('Starting advanced bulk highlight extraction...');
       
       // Check authentication first
       if (!(await this.checkAuthenticationState())) {
         throw new Error('Authentication required');
       }
 
+      // Create progress overlay
+      this.createProgressOverlay();
+      this.updateProgress('Initializing scraper...');
+
       // Wait for page to fully load
       await this.waitForPageLoad();
+      this.updateProgress('Page loaded, extracting books...');
 
-      // Get all books from the library
-      const books = await this.scrapeBooks();
+      // Step 1: Extract all books from library in bulk
+      const books = await this.extractAllBooksFromLibrary();
       this.scraperState.totalBooks = books.length;
       
       console.log(`Found ${books.length} books`);
+      this.updateProgress(`Found ${books.length} books to process`);
 
       if (books.length === 0) {
+        this.updateProgress('No books found in library');
+        setTimeout(() => this.removeProgressOverlay(), 2000);
         return {
           status: 'success',
           message: 'No books found in library',
@@ -104,26 +114,26 @@ class KindleScraper {
         };
       }
 
-      // Process each book to get highlights
+      // Step 2: Extract highlights for each book using optimized method
       const allHighlights = [];
       
       for (let i = 0; i < books.length; i++) {
         const book = books[i];
         
         try {
+          this.updateProgress(`Processing: ${book.title} (${i + 1}/${books.length})`);
           console.log(`Processing book ${i + 1}/${books.length}: ${book.title}`);
           
-          // Rate limiting between books
-          await this.rateLimiter.waitForBook();
-          
-          const highlights = await this.scrapeBookHighlights(book);
+          const highlights = await this.extractHighlightsForBook(book);
           allHighlights.push(...highlights);
           
           this.scraperState.processedBooks = i + 1;
           this.scraperState.totalHighlights = allHighlights.length;
           
-          // Notify progress
-          this.notifyProgress();
+          // Brief pause between books to be respectful
+          if (i < books.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
           
         } catch (error) {
           console.error(`Error processing book ${book.title}:`, error);
@@ -134,7 +144,11 @@ class KindleScraper {
         }
       }
 
+      this.updateProgress(`✅ Complete! Found ${allHighlights.length} highlights from ${books.length} books`);
       console.log(`Scraping complete. Found ${allHighlights.length} highlights from ${books.length} books`);
+
+      // Keep overlay visible for 3 seconds
+      setTimeout(() => this.removeProgressOverlay(), 3000);
 
       return {
         status: 'success',
@@ -151,6 +165,8 @@ class KindleScraper {
 
     } catch (error) {
       console.error('Scraping failed:', error);
+      this.updateProgress(`❌ Error: ${error.message}`);
+      setTimeout(() => this.removeProgressOverlay(), 5000);
       return {
         status: 'error',
         message: error.message,
@@ -175,21 +191,19 @@ class KindleScraper {
       }
     });
 
-    // Wait a bit more for dynamic content
+    // Wait for dynamic content to load
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  async scrapeBooks() {
-    console.log('Scraping books from library...');
+  // Extract all books from library using bulk approach
+  async extractAllBooksFromLibrary() {
+    console.log('Extracting all books from library using bulk approach...');
     
-    // Multiple selectors for different Amazon page versions
+    // Based on actual Amazon HTML structure
     const bookSelectors = [
-      '[data-testid="book-item"]',
-      '.kp-notebook-library-book',
-      '.library-book',
-      'div[class*="library-book"]',
-      'div[class*="notebook-book"]',
-      '[id*="book-"]'
+      '.kp-notebook-library-each-book',  // Primary selector from HTML analysis
+      '#kp-notebook-library > div[id]',  // Books have ASINs as IDs
+      'div[id][class*="kp-notebook-library-each-book"]'
     ];
 
     let bookElements = [];
@@ -203,9 +217,15 @@ class KindleScraper {
       }
     }
 
+    // Fallback: search in library container
     if (bookElements.length === 0) {
-      // Try to find books by looking for elements with book-like content
-      bookElements = this.findBookElementsFallback();
+      const libraryContainer = document.querySelector('#kp-notebook-library');
+      if (libraryContainer) {
+        bookElements = Array.from(libraryContainer.children).filter(child => 
+          child.id && child.id.match(/^[A-Z0-9]+$/) // ASIN pattern
+        );
+        console.log(`Found ${bookElements.length} books using library container fallback`);
+      }
     }
 
     const books = [];
@@ -214,6 +234,8 @@ class KindleScraper {
       try {
         const book = this.parser.extractBookInfo(element);
         if (book && book.title) {
+          // Store the original element for later use
+          book.sourceElement = element;
           books.push(book);
         }
       } catch (error) {
@@ -224,39 +246,25 @@ class KindleScraper {
     return books;
   }
 
-  findBookElementsFallback() {
-    // Fallback method to find book elements when standard selectors fail
-    const potentialBooks = [];
+  // Extract highlights for a specific book using optimized method
+  async extractHighlightsForBook(book) {
+    console.log(`Extracting highlights for: ${book.title}`);
     
-    // Look for elements containing book titles and authors
-    const allDivs = document.querySelectorAll('div');
+    // Click on the book to load its highlights
+    const clicked = await this.clickBookToLoadHighlights(book);
     
-    for (const div of allDivs) {
-      const hasTitle = div.querySelector('[class*="title"], [data-testid*="title"], h1, h2, h3, strong');
-      const hasAuthor = div.querySelector('[class*="author"], [data-testid*="author"]');
-      
-      if (hasTitle && (hasAuthor || div.textContent.includes('by '))) {
-        potentialBooks.push(div);
-      }
+    if (!clicked) {
+      console.warn(`Could not load highlights for book: ${book.title}`);
+      return [];
     }
     
-    console.log(`Fallback method found ${potentialBooks.length} potential book elements`);
-    return potentialBooks;
-  }
-
-  async scrapeBookHighlights(book) {
-    console.log(`Scraping highlights for: ${book.title}`);
-    
-    // First, try to navigate to or expand the book's highlights
-    await this.openBookHighlights(book);
-    
     // Wait for highlights to load
-    await this.rateLimiter.waitForHighlights();
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Get all highlight elements
     const highlightElements = await this.getHighlightElements();
     
-    // Handle pagination - scroll or click "Show More" to load all highlights
+    // Load all highlights (handle pagination if needed)
     const allHighlightElements = await this.loadAllHighlights(highlightElements);
     
     // Parse each highlight
@@ -277,78 +285,114 @@ class KindleScraper {
     return highlights;
   }
 
-  async openBookHighlights(book) {
-    // Try to find and click the book element to expand its highlights
-    const bookElement = document.querySelector(`[data-asin="${book.asin}"], #${book.asin}`);
+  async clickBookToLoadHighlights(book) {
+    console.log(`Loading highlights for: ${book.title}`);
     
-    if (bookElement) {
-      // Look for clickable elements within the book
-      const clickableElements = bookElement.querySelectorAll('button, a, [role="button"]');
-      
-      for (const element of clickableElements) {
-        if (element.textContent.toLowerCase().includes('highlight') ||
-            element.textContent.toLowerCase().includes('view') ||
-            element.classList.contains('expand')) {
-          element.click();
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          break;
+    let bookElement = book.sourceElement;
+    
+    // If no source element, try to find it
+    if (!bookElement && book.asin) {
+      bookElement = document.querySelector(`#${book.asin}`);
+    }
+    
+    if (!bookElement) {
+      console.warn(`Could not find book element for "${book.title}"`);
+      return false;
+    }
+    
+    try {
+      // Find the clickable element with annotations action
+      const clickableSpan = bookElement.querySelector('span[data-action="get-annotations-for-asin"]');
+      if (clickableSpan) {
+        console.log('Clicking on annotations trigger...');
+        clickableSpan.click();
+      } else {
+        // Fallback: click the link
+        const clickableLink = bookElement.querySelector('a');
+        if (clickableLink) {
+          console.log('Clicking on book link...');
+          clickableLink.click();
+        } else {
+          console.log('Clicking on book element directly...');
+          bookElement.click();
         }
       }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error clicking book element for "${book.title}":`, error);
+      return false;
     }
   }
 
   async getHighlightElements() {
+    // Look for highlights in the annotations panel
     const highlightSelectors = [
-      '[data-testid="highlight"]',
-      '.kp-notebook-highlight',
-      '.highlight-content',
-      'div[class*="highlight"]',
-      '[id*="highlight"]',
-      '.annotation'
+      '.kp-notebook-highlight',           // Primary selector from HTML analysis
+      'div[class*="kp-notebook-highlight"]',
+      '[id*="highlight-"]',               // IDs start with "highlight-"
+      '.kp-notebook-selectable'
     ];
 
     let highlightElements = [];
     
-    for (const selector of highlightSelectors) {
-      highlightElements = Array.from(document.querySelectorAll(selector));
-      if (highlightElements.length > 0) {
-        console.log(`Found ${highlightElements.length} highlights using selector: ${selector}`);
-        break;
+    // First try to find highlights within the annotations panel
+    const annotationsPanel = document.querySelector('#annotations');
+    if (annotationsPanel) {
+      for (const selector of highlightSelectors) {
+        highlightElements = Array.from(annotationsPanel.querySelectorAll(selector));
+        if (highlightElements.length > 0) {
+          console.log(`Found ${highlightElements.length} highlights in annotations panel using: ${selector}`);
+          break;
+        }
+      }
+    }
+    
+    // Fallback to searching the entire document
+    if (highlightElements.length === 0) {
+      for (const selector of highlightSelectors) {
+        highlightElements = Array.from(document.querySelectorAll(selector));
+        if (highlightElements.length > 0) {
+          console.log(`Found ${highlightElements.length} highlights globally using: ${selector}`);
+          break;
+        }
       }
     }
 
+    // Filter to actual highlights (must have substantial text content)
+    highlightElements = highlightElements.filter(element => {
+      const textContent = element.textContent || '';
+      return textContent.trim().length > 20; // Real highlights are longer
+    });
+    
+    console.log(`Filtered to ${highlightElements.length} actual highlight elements`);
     return highlightElements;
   }
 
   async loadAllHighlights(initialElements) {
     let allElements = [...initialElements];
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 5;
 
     while (attempts < maxAttempts) {
-      // Try to find and click "Show More" or similar pagination buttons
+      // Try scrolling to load more highlights
+      window.scrollTo(0, document.body.scrollHeight);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Check for "Show More" buttons
       const showMoreButtons = document.querySelectorAll(
         'button[class*="show-more"], button[class*="load-more"], ' +
-        'a[class*="show-more"], a[class*="load-more"], ' +
-        '.pagination-next, .next-page'
+        'a[class*="show-more"], a[class*="load-more"]'
       );
 
       let clicked = false;
-      
       for (const button of showMoreButtons) {
-        if (button.offsetParent !== null && !button.disabled) { // Visible and enabled
+        if (button.offsetParent !== null && !button.disabled) {
           button.click();
           clicked = true;
+          await new Promise(resolve => setTimeout(resolve, 2000));
           break;
         }
-      }
-
-      if (!clicked) {
-        // Try infinite scroll
-        window.scrollTo(0, document.body.scrollHeight);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 3000));
       }
 
       // Check for new highlights
@@ -357,60 +401,107 @@ class KindleScraper {
       if (newElements.length > allElements.length) {
         allElements = newElements;
         console.log(`Loaded more highlights. Total: ${allElements.length}`);
-        attempts = 0; // Reset attempts if we found more
+        attempts = 0; // Reset if we found more
       } else {
         attempts++;
+      }
+
+      if (!clicked) {
+        break; // No more pagination buttons, we're done
       }
     }
 
     return allElements;
   }
 
-  notifyProgress() {
-    chrome.runtime.sendMessage({
-      action: 'scraping-progress',
-      progress: {
-        totalBooks: this.scraperState.totalBooks,
-        processedBooks: this.scraperState.processedBooks,
-        totalHighlights: this.scraperState.totalHighlights,
-        errors: this.scraperState.errors.length
-      }
-    });
-  }
-}
-
-// Rate limiter to be respectful to Amazon's servers
-class RateLimiter {
-  constructor() {
-    this.lastBookTime = 0;
-    this.lastHighlightTime = 0;
-  }
-
-  async waitForBook() {
-    const now = Date.now();
-    const timeSinceLastBook = now - this.lastBookTime;
-    const minBookDelay = 2000; // 2 seconds between books
-
-    if (timeSinceLastBook < minBookDelay) {
-      const waitTime = minBookDelay - timeSinceLastBook;
-      console.log(`Rate limiting: waiting ${waitTime}ms before next book`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+  // Progress overlay UI (inspired by clippings.io)
+  createProgressOverlay() {
+    if (this.overlay) {
+      return; // Already exists
     }
 
-    this.lastBookTime = Date.now();
+    this.overlay = document.createElement('div');
+    this.overlay.id = 'kindle-scraper-overlay';
+    this.overlay.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+      ">
+        <div style="
+          background: white;
+          padding: 30px;
+          border-radius: 10px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          text-align: center;
+          min-width: 400px;
+          max-width: 600px;
+        ">
+          <h2 style="margin: 0 0 20px 0; color: #333; font-size: 24px;">
+            📚 Kindle Highlights Reminder
+          </h2>
+          <div id="progress-text" style="
+            font-size: 16px;
+            color: #666;
+            margin: 15px 0;
+            min-height: 24px;
+          ">
+            Initializing...
+          </div>
+          <div style="
+            width: 100%;
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            margin: 20px 0;
+            overflow: hidden;
+          ">
+            <div id="progress-bar" style="
+              height: 100%;
+              background: linear-gradient(90deg, #4CAF50, #45a049);
+              width: 0%;
+              transition: width 0.3s ease;
+            "></div>
+          </div>
+          <div style="font-size: 12px; color: #999; margin-top: 15px;">
+            Please keep this tab active while scraping...
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(this.overlay);
   }
 
-  async waitForHighlights() {
-    const now = Date.now();
-    const timeSinceLastHighlight = now - this.lastHighlightTime;
-    const minHighlightDelay = 500; // 500ms between highlight operations
+  updateProgress(message) {
+    if (!this.overlay) return;
 
-    if (timeSinceLastHighlight < minHighlightDelay) {
-      const waitTime = minHighlightDelay - timeSinceLastHighlight;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+    const progressText = this.overlay.querySelector('#progress-text');
+    const progressBar = this.overlay.querySelector('#progress-bar');
+    
+    if (progressText) {
+      progressText.textContent = message;
     }
+    
+    if (progressBar && this.scraperState.totalBooks > 0) {
+      const percentage = (this.scraperState.processedBooks / this.scraperState.totalBooks) * 100;
+      progressBar.style.width = percentage + '%';
+    }
+  }
 
-    this.lastHighlightTime = Date.now();
+  removeProgressOverlay() {
+    if (this.overlay) {
+      this.overlay.remove();
+      this.overlay = null;
+    }
   }
 }
 
@@ -422,8 +513,8 @@ function initializeScraper() {
     return;
   }
   
-  console.log('Initializing KindleScraper with loaded KindleParser');
-  window.scraper = new KindleScraper();
+  console.log('Initializing KindleBulkScraper with loaded KindleParser');
+  window.scraper = new KindleBulkScraper();
 }
 
 // Start initialization
@@ -433,8 +524,14 @@ initializeScraper();
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Content script received message:', request);
   
+  if (request.action === 'ping') {
+    console.log('Ping received, responding...');
+    sendResponse({ status: 'ready', message: 'Advanced bulk scraper is active' });
+    return true;
+  }
+  
   if (request.action === 'start-scraping') {
-    console.log('Starting scraping process...');
+    console.log('Starting advanced bulk scraping process...');
     
     // Ensure scraper is initialized
     if (!window.scraper) {
@@ -446,13 +543,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return;
     }
     
-    console.log('Scraper is ready, starting highlight scraping...');
+    console.log('Advanced scraper is ready, starting bulk extraction...');
     
     window.scraper.scrapeHighlights(request.options || {}).then(result => {
-      console.log('Scraping completed:', result);
+      console.log('Advanced scraping completed:', result);
       sendResponse(result);
     }).catch(error => {
-      console.error('Scraping failed:', error);
+      console.error('Advanced scraping failed:', error);
       sendResponse({
         status: 'error',
         message: error.message
@@ -465,5 +562,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { KindleScraper, RateLimiter };
+  module.exports = { KindleBulkScraper };
 }

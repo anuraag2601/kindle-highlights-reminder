@@ -9,7 +9,7 @@ const { KindleParser } = require('../../content-scripts/parser.js');
 // Make KindleParser globally available for scraper
 global.KindleParser = KindleParser;
 
-const { KindleScraper, RateLimiter } = require('../../content-scripts/scraper.js');
+const { KindleBulkScraper } = require('../../content-scripts/scraper.js');
 
 // Mock Chrome APIs
 global.chrome = {
@@ -69,7 +69,7 @@ describe('Scraping Flow Integration', () => {
     });
     
     // Initialize scraper
-    scraper = new KindleScraper();
+    scraper = new KindleBulkScraper();
   });
 
   afterEach(() => {
@@ -258,51 +258,4 @@ describe('Scraping Flow Integration', () => {
   });
 });
 
-describe('RateLimiter', () => {
-  let rateLimiter;
-
-  beforeEach(() => {
-    rateLimiter = new RateLimiter();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  test('should enforce rate limiting for books', async () => {
-    const startTime = Date.now();
-    
-    // First call should not wait
-    await rateLimiter.waitForBook();
-    
-    // Advance time by 1 second
-    jest.advanceTimersByTime(1000);
-    
-    // Second call should wait for remaining time
-    const waitPromise = rateLimiter.waitForBook();
-    
-    // Should still be waiting
-    expect(jest.getTimerCount()).toBeGreaterThan(0);
-    
-    // Advance time to complete the wait
-    jest.advanceTimersByTime(1000);
-    
-    await waitPromise;
-    expect(jest.getTimerCount()).toBe(0);
-  });
-
-  test('should not wait if enough time has passed', async () => {
-    await rateLimiter.waitForBook();
-    
-    // Advance time by more than the minimum delay
-    jest.advanceTimersByTime(3000);
-    
-    const startTime = Date.now();
-    await rateLimiter.waitForBook();
-    const endTime = Date.now();
-    
-    // Should not have waited additional time
-    expect(endTime - startTime).toBeLessThan(100);
-  });
-});
+// RateLimiter is now integrated into the KindleBulkScraper class

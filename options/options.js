@@ -3,7 +3,7 @@
 
 class OptionsManager {
   constructor() {
-    this.database = window.database;
+    this.database = new KindleDatabase();
     this.loadSettings();
     this.loadStatistics();
     this.loadAnalytics();
@@ -491,13 +491,29 @@ class OptionsManager {
 
   async exportData() {
     try {
-      await this.database.init();
-      const data = await this.database.exportAllData();
+      console.log('Starting data export...');
+      this.showStatus('Exporting data...', 'info');
       
+      console.log('Initializing database...');
+      await this.database.init();
+      console.log('Database initialized successfully');
+      
+      console.log('Fetching all data...');
+      const data = await this.database.exportAllData();
+      console.log('Data fetched:', {
+        booksCount: data.data.books.length,
+        highlightsCount: data.data.highlights.length,
+        syncHistoryCount: data.data.syncHistory.length,
+        emailHistoryCount: data.data.emailHistory.length
+      });
+      
+      console.log('Creating blob...');
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: 'application/json'
       });
+      console.log('Blob created, size:', blob.size);
       
+      console.log('Creating download link...');
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -508,9 +524,10 @@ class OptionsManager {
       URL.revokeObjectURL(url);
       
       this.showStatus('Data exported successfully!', 'success');
+      console.log('Export completed successfully');
     } catch (error) {
       console.error('Export failed:', error);
-      this.showStatus('Export failed: ' + error.message, 'error');
+      this.showStatus(`Export failed: ${error.message}`, 'error');
     }
   }
 

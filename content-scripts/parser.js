@@ -8,81 +8,65 @@ class KindleParser {
     // Multiple selector sets for different Amazon page versions and layouts
     this.bookSelectors = {
       container: [
-        '[data-testid="book-item"]',
-        '.kp-notebook-library-book',
-        '.library-book',
-        'div[class*="library-book"]',
-        'div[class*="notebook-book"]',
-        '[id*="book-"]',
-        '.book-container'
+        '.kp-notebook-library-each-book',  // Correct class from HTML analysis
+        '#kp-notebook-library > div[id]',  // Books with ASIN IDs
+        'div[class*="library-each-book"]'
       ],
       title: [
-        '[data-testid="book-title"]',
-        '.book-title',
-        'h1', 'h2', 'h3',
-        '[class*="title"]',
-        '.kp-notebook-book-title',
-        'strong',
-        '.book-name'
+        'h2.kp-notebook-searchable.a-text-bold',  // Exact selector from HTML
+        'h2.kp-notebook-searchable',
+        'h2',
+        '[class*="title"]'
       ],
       author: [
-        '[data-testid="book-author"]',
-        '.book-author',
+        'p.kp-notebook-searchable',  // Author is in p tag with this class
+        'p.a-color-secondary.kp-notebook-searchable',
         '[class*="author"]',
-        '.kp-notebook-book-author',
-        '.by-author'
+        'p.a-size-base.a-color-secondary'
       ],
       asin: [
+        '[data-get-annotations-for-asin]',  // ASIN is in data attribute
         '[data-asin]',
-        '[id*="book-"]',
-        '[data-book-asin]'
+        '[id]'  // Element ID is the ASIN
       ],
       cover: [
-        'img[data-testid="book-cover"]',
-        '.book-cover img',
-        'img[class*="cover"]',
-        'img[src*="images-amazon"]'
+        'img.kp-notebook-cover-image',  // Correct image class
+        'img[class*="cover-image"]',
+        'img[src*="images-amazon"]',
+        'img[src*="_SY160.jpg"]'  // Specific Amazon image pattern
       ]
     };
 
     this.highlightSelectors = {
       container: [
-        '[data-testid="highlight"]',
-        '.kp-notebook-highlight',
-        '.highlight-content',
-        'div[class*="highlight"]',
-        '[id*="highlight"]',
-        '.annotation',
-        '.note-content'
+        '.kp-notebook-highlight',  // Correct class from HTML analysis
+        'div[class*="kp-notebook-highlight"]',
+        '[id*="highlight-"]'  // IDs start with "highlight-"
       ],
       text: [
-        '[data-testid="highlight-text"]',
-        '.highlight-text',
-        '.kp-notebook-highlight-text',
-        '[class*="highlight-text"]',
-        '.annotation-text',
-        'span[class*="text"]'
+        'span#highlight',  // Exact selector from HTML: <span id="highlight">
+        '.a-size-base-plus.a-color-base',  // Text styling classes
+        'span.a-size-base-plus',
+        'span[id="highlight"]'
       ],
       location: [
-        '[data-testid="highlight-location"]',
-        '.highlight-location',
-        '.kp-notebook-highlight-location',
+        '.kp-notebook-page-range',  // Location/page info
         '[class*="location"]',
-        '.page-location',
-        '.position'
+        '.a-size-mini',
+        'span[class*="location"]'
       ],
       note: [
-        '[data-testid="highlight-note"]',
-        '.highlight-note',
         '.kp-notebook-note',
         '[class*="note"]',
-        '.user-note',
-        '.personal-note'
+        '.annotation-note',
+        'div[class*="note"]'
       ],
       color: [
-        '[data-color]',
-        '[class*="color-"]',
-        '[data-highlight-color]'
+        '[class*="highlight-yellow"]',  // kp-notebook-highlight-yellow
+        '[class*="highlight-blue"]',    // kp-notebook-highlight-blue  
+        '[class*="highlight-pink"]',    // kp-notebook-highlight-pink
+        '[class*="highlight-orange"]',  // kp-notebook-highlight-orange
+        '[data-color]'
       ]
     };
 
@@ -213,13 +197,33 @@ class KindleParser {
   }
 
   extractASIN(element) {
-    // First check the element itself for ASIN attributes
-    const directAsin = element.getAttribute('data-asin') || 
-                      element.getAttribute('data-book-asin') ||
-                      element.getAttribute('id');
+    // First check the element itself for ASIN (element ID is the ASIN in Amazon's structure)
+    const directAsin = element.getAttribute('id') ||
+                      element.getAttribute('data-asin') || 
+                      element.getAttribute('data-book-asin');
     
     if (directAsin && this.isValidASIN(directAsin)) {
       return this.cleanASIN(directAsin);
+    }
+    
+    // Check for ASIN in data-get-annotations-for-asin attribute (Amazon's structure)
+    const annotationTrigger = element.querySelector('[data-get-annotations-for-asin]');
+    if (annotationTrigger) {
+      const dataAttr = annotationTrigger.getAttribute('data-get-annotations-for-asin');
+      if (dataAttr) {
+        try {
+          const parsed = JSON.parse(dataAttr);
+          if (parsed.asin && this.isValidASIN(parsed.asin)) {
+            return this.cleanASIN(parsed.asin);
+          }
+        } catch (e) {
+          // If JSON parsing fails, try to extract ASIN from the string
+          const asinMatch = dataAttr.match(/[A-Z0-9]{10}/);
+          if (asinMatch && this.isValidASIN(asinMatch[0])) {
+            return this.cleanASIN(asinMatch[0]);
+          }
+        }
+      }
     }
     
     // Try multiple methods to extract ASIN from child elements

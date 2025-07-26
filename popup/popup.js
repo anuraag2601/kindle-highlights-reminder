@@ -21,6 +21,7 @@ class PopupController {
       totalHighlights: document.getElementById('total-highlights'),
       totalBooks: document.getElementById('total-books'),
       syncNowButton: document.getElementById('sync-now'),
+      sendEmailButton: document.getElementById('send-email-now'),
       testEmailButton: document.getElementById('send-test-email'),
       autoSyncToggle: document.getElementById('auto-sync-toggle'),
       openSettingsLink: document.getElementById('open-settings'),
@@ -36,6 +37,10 @@ class PopupController {
     // Action buttons
     this.elements.syncNowButton.addEventListener('click', () => {
       this.handleSyncNow();
+    });
+
+    this.elements.sendEmailButton.addEventListener('click', () => {
+      this.handleSendEmail();
     });
 
     this.elements.testEmailButton.addEventListener('click', () => {
@@ -168,6 +173,23 @@ class PopupController {
     }
   }
 
+  async handleSendEmail() {
+    try {
+      this.setButtonLoading(this.elements.sendEmailButton, true);
+      const result = await this.sendMessage({ action: 'send-email-now' });
+      if (result.success) {
+        this.showMessage(result.data.message, 'success');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Send email failed:', error);
+      this.showMessage('Failed to send email: ' + error.message, 'error');
+    } finally {
+      this.setButtonLoading(this.elements.sendEmailButton, false);
+    }
+  }
+
   async handleTestEmail() {
     try {
       this.setButtonLoading(this.elements.testEmailButton, true);
@@ -175,11 +197,7 @@ class PopupController {
       const result = await this.sendMessage({ action: 'send-test-email' });
 
       if (result.success) {
-        if (result.data.status === 'not_implemented') {
-          this.showMessage(result.data.message, 'info');
-        } else {
-          this.showMessage('Test email sent successfully!', 'success');
-        }
+        this.showMessage(result.data.message, 'success');
       } else {
         throw new Error(result.error);
       }

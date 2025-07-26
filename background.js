@@ -226,22 +226,41 @@ class BackgroundService {
   async setupDefaultAlarms() {
     // Clear existing alarms
     await chrome.alarms.clearAll();
+    console.log('Cleared all existing alarms');
     
     const settings = await this.getSettings();
+    console.log('Setting up alarms with settings:', {
+      enableAutoSync: settings.enableAutoSync,
+      syncFrequency: settings.syncFrequency,
+      emailFrequency: settings.emailFrequency
+    });
     
     // Set up sync alarm if auto-sync is enabled
     if (settings.enableAutoSync) {
+      const periodInMinutes = settings.syncFrequency * 60;
       await chrome.alarms.create('sync-highlights', {
-        periodInMinutes: settings.syncFrequency * 60
+        periodInMinutes: periodInMinutes
       });
+      console.log(`Created sync-highlights alarm with period: ${periodInMinutes} minutes (${settings.syncFrequency} hours)`);
+    } else {
+      console.log('Auto-sync is disabled, not creating sync alarm');
     }
     
     // Set up email scheduling via email scheduler
     if (settings.emailFrequency !== 'manual') {
       await this.emailScheduler.scheduleEmails(settings);
+      console.log('Email scheduling set up');
+    } else {
+      console.log('Email frequency is manual, not scheduling emails');
     }
     
-    console.log('Default alarms set up');
+    // Log all current alarms
+    const allAlarms = await chrome.alarms.getAll();
+    console.log('All active alarms after setup:', allAlarms.map(a => ({
+      name: a.name,
+      scheduledTime: new Date(a.scheduledTime).toLocaleString(),
+      periodInMinutes: a.periodInMinutes
+    })));
   }
 
   async restoreAlarms() {
@@ -335,8 +354,8 @@ class BackgroundService {
         // Bring the tab to focus so user can see what's happening
         await chrome.tabs.update(existingTab.id, { active: true });
         
-        // Small delay to ensure tab is focused and content script loads
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Wait for tab to be ready and content script to load
+        await this.waitForTabReady(existingTab.id);
         
         return this.performSyncOnTab(existingTab.id);
       }
@@ -355,6 +374,41 @@ class BackgroundService {
       url: ['*://read.amazon.com/notebook*', '*://read.amazon.com/kp/notebook*']
     });
     return tabs;
+  }
+
+  async waitForTabReady(tabId) {
+    console.log(`Waiting for tab ${tabId} to be ready...`);
+    
+    // Check tab status
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      console.log(`Tab status: ${tab.status}, URL: ${tab.url}`);
+      
+      if (tab.status !== 'complete') {
+        console.log('Tab not complete, waiting...');
+        await new Promise(resolve => {
+          const listener = (changedTabId, changeInfo) => {
+            if (changedTabId === tabId && changeInfo.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
+          };
+          chrome.tabs.onUpdated.addListener(listener);
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            chrome.tabs.onUpdated.removeListener(listener);
+            resolve();
+          }, 10000);
+        });
+      }
+      
+      // Additional wait for content script to initialize
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+    } catch (error) {
+      console.error('Error waiting for tab:', error);
+    }
   }
 
   // Alternative sync method: Guide user to open Amazon in their current session
@@ -402,6 +456,63 @@ class BackgroundService {
 
   async performSyncOnTab(tabId) {
     console.log(`Performing sync on tab ${tabId}...`);
+    
+    // Wait for content script to load and try multiple times
+    return this.performSyncWithRetry(tabId, 3);
+  }
+
+  async performSyncWithRetry(tabId, maxRetries) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`Sync attempt ${attempt}/${maxRetries} on tab ${tabId}...`);
+      
+      // Wait a bit longer on subsequent attempts
+      if (attempt > 1) {
+        const delay = attempt * 2000; // 2s, 4s, 6s
+        console.log(`Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      const result = await this.trySyncOnTab(tabId);
+      
+      if (result.status !== 'error' || !result.message.includes('Could not establish connection')) {
+        return result;
+      }
+      
+      if (attempt === maxRetries) {
+        return {
+          status: 'error',
+          message: 'Content script failed to load after multiple attempts. Please refresh the Amazon page and try again.'
+        };
+      }
+      
+      console.log(`Attempt ${attempt} failed, retrying...`);
+    }
+  }
+
+  async testContentScript(tabId) {
+    return new Promise((resolve) => {
+      console.log('Testing if content script is available...');
+      chrome.tabs.sendMessage(tabId, { action: 'ping' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Content script not available:', chrome.runtime.lastError.message);
+          resolve(false);
+        } else {
+          console.log('Content script responded to ping');
+          resolve(true);
+        }
+      });
+    });
+  }
+
+  async trySyncOnTab(tabId) {
+    // First, test if content script is available
+    const isAvailable = await this.testContentScript(tabId);
+    if (!isAvailable) {
+      return {
+        status: 'error',
+        message: 'Content script not available on this tab'
+      };
+    }
     
     return new Promise((resolve) => {
       // Send message to content script to start scraping
@@ -561,12 +672,30 @@ class BackgroundService {
       if (!email) {
         return {
           status: 'error',
-          message: 'No email address provided'
+          message: 'No email address configured. Please set your email in Settings.'
         };
       }
 
       console.log('Sending test email to:', email);
       const result = await this.emailService.sendTestEmail(email);
+      
+      // If the email service returned a mailto link, open it
+      if (result.status === 'success' && result.mailto) {
+        try {
+          await chrome.tabs.create({ url: result.mailto });
+          return {
+            status: 'success',
+            message: 'Email client opened with test highlights. Please send the email from your email client.',
+            highlightCount: result.highlightCount
+          };
+        } catch (tabError) {
+          console.error('Failed to open email client:', tabError);
+          return {
+            status: 'error',
+            message: 'Failed to open email client. Please check your default email application.'
+          };
+        }
+      }
       
       return result;
     } catch (error) {
@@ -585,12 +714,50 @@ class BackgroundService {
       if (!settings.email) {
         return {
           status: 'error',
-          message: 'No email address configured'
+          message: 'No email address configured. Please set your email in Settings.'
         };
       }
 
       console.log('Sending email immediately');
-      const result = await this.emailScheduler.sendEmailNow(settings);
+      
+      // Get highlights from database
+      await database.init();
+      const highlights = await this.highlightSelector.selectHighlights(
+        settings.highlightsPerEmail || 5,
+        settings
+      );
+      
+      if (highlights.length === 0) {
+        return {
+          status: 'error',
+          message: 'No highlights available to send. Please sync your Kindle highlights first.'
+        };
+      }
+      
+      // Generate email
+      const result = await this.emailService.sendHighlightEmail(highlights, settings);
+      
+      // If the email service returned a mailto link, open it
+      if (result.status === 'success' && result.mailto) {
+        try {
+          await chrome.tabs.create({ url: result.mailto });
+          
+          // Update last shown timestamps for spaced repetition
+          await this.highlightSelector.updateLastShownTimestamps(highlights);
+          
+          return {
+            status: 'success',
+            message: `Email client opened with ${highlights.length} highlights. Please send the email from your email client.`,
+            highlightCount: highlights.length
+          };
+        } catch (tabError) {
+          console.error('Failed to open email client:', tabError);
+          return {
+            status: 'error',
+            message: 'Failed to open email client. Please check your default email application.'
+          };
+        }
+      }
       
       return result;
     } catch (error) {
@@ -698,8 +865,46 @@ class BackgroundService {
   }
 
   async performScheduledSync() {
-    console.log('Performing scheduled sync');
-    // TODO: Implement in Milestone 2
+    console.log('Performing scheduled auto-sync...');
+    
+    try {
+      // Get settings to check if auto-sync is enabled
+      const settings = await this.getSettings();
+      
+      if (!settings.enableAutoSync) {
+        console.log('Auto-sync is disabled, skipping scheduled sync');
+        return { status: 'disabled', message: 'Auto-sync is disabled' };
+      }
+      
+      // Check if user is on Amazon Kindle notebook page
+      const tabs = await this.getKindleNotebookTabs();
+      
+      if (tabs.length === 0) {
+        console.log('No Kindle notebook tabs found for auto-sync, skipping');
+        return {
+          status: 'skipped',
+          message: 'No Amazon Kindle notebook page found for auto-sync'
+        };
+      }
+      
+      // Use the first available tab
+      const tab = tabs[0];
+      console.log(`Performing scheduled sync on tab ${tab.id}`);
+      
+      // For auto-sync, don't bring tab to focus to avoid interrupting user
+      // Perform the sync
+      const result = await this.performSyncOnTab(tab.id);
+      
+      console.log('Scheduled sync completed:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('Scheduled sync failed:', error);
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
   }
 
   async sendScheduledEmail() {
